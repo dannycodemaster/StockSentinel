@@ -4,7 +4,7 @@
 // 3. Replace the placeholders below and set enabled to true.
 
 export const SUPABASE_CONFIG = {
-  enabled: false,
-  url: 'https://YOUR_PROJECT_REF.supabase.co',
-  anonKey: 'YOUR_SUPABASE_ANON_KEY'
+  enabled: true,
+  url: 'https://drsuhwiwpkbshnjvzytu.supabase.co',
+  anonKey: 'sb_publishable_s-Hjjy5Rqtmwhkl-0BhBRQ_uwWJAqi7'
 };
