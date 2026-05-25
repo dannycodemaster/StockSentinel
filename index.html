@@ -449,6 +449,22 @@
           <label for="prod-threshold" title="Default fallback limit if transaction data is scarce">Static Reorder Alert Point</label>
           <input type="number" class="form-control" id="prod-threshold" value="10">
         </div>
+        <div class="opening-stock-panel" id="opening-stock-panel">
+          <div>
+            <h3>Opening Stock</h3>
+            <p>Record the starting quantity for this SKU as its first inbound transaction.</p>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="prod-opening-stock">Starting Quantity</label>
+              <input type="number" class="form-control" id="prod-opening-stock" min="0" value="0">
+            </div>
+            <div class="form-group">
+              <label for="prod-opening-ref">Reference</label>
+              <input type="text" class="form-control" id="prod-opening-ref" placeholder="e.g. OPENING-STOCK">
+            </div>
+          </div>
+        </div>
         <div class="mt-4" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
           <button type="button" class="btn btn-secondary" id="product-form-cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Product</button>

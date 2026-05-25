@@ -232,17 +232,22 @@ export function renderProductsTable(filterText = '', filterCategory = 'ALL', fil
   const suppliers = getSuppliers();
   const locations = getLocations();
   const tbody = document.getElementById('products-table-body');
-  if (!tbody) return;
+  const grid = document.getElementById('products-card-grid');
+  const statsBar = document.getElementById('catalog-stats-bar');
+  if (!tbody && !grid) return;
 
   // Populate category dropdown
   const catSelect = document.getElementById('filter-product-category');
-  if (catSelect && catSelect.options.length <= 1) {
+  if (catSelect) {
+    const selected = catSelect.value || filterCategory;
+    catSelect.innerHTML = '<option value="ALL">All Categories</option>';
     const cats = [...new Set(products.map(p => p.Category).filter(Boolean))];
     cats.forEach(c => {
       const opt = document.createElement('option');
       opt.value = c; opt.textContent = c;
       catSelect.appendChild(opt);
     });
+    catSelect.value = [...catSelect.options].some(o => o.value === selected) ? selected : 'ALL';
   }
 
   const filtered = products.filter(p => {
@@ -260,14 +265,31 @@ export function renderProductsTable(filterText = '', filterCategory = 'ALL', fil
     return matchText && matchCat && matchStatus;
   });
 
+  const statusCounts = products.reduce((acc, p) => {
+    const status = getProductAlertStatus(p.ProductID);
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+  const valuation = getInventoryValuation();
+  if (statsBar) {
+    statsBar.innerHTML = `
+      <div class="catalog-stat"><span>Total SKUs</span><strong>${products.length}</strong></div>
+      <div class="catalog-stat"><span>Healthy</span><strong>${statusCounts.OK || 0}</strong></div>
+      <div class="catalog-stat"><span>Low</span><strong>${statusCounts.LOW_STOCK || 0}</strong></div>
+      <div class="catalog-stat"><span>Out</span><strong>${statusCounts.CRITICAL || 0}</strong></div>
+      <div class="catalog-stat"><span>Cost Value</span><strong>${fmt$(valuation.cost)}</strong></div>
+    `;
+  }
+
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="color: var(--text-muted); padding: 2rem;">No products match your filters.</td></tr>`;
+    if (grid) grid.innerHTML = `<div class="empty-catalog-state">No products match your filters.</div>`;
     return;
   }
 
   const currentUser = getCurrentUser();
 
-  tbody.innerHTML = filtered.map(p => {
+  const productRows = filtered.map(p => {
     const supp = suppliers.find(s => s.SupplierID === p.SupplierID);
     const loc = locations.find(l => l.LocationID === p.LocationID);
     const stock = getProductInventory(p.ProductID);
@@ -288,12 +310,52 @@ export function renderProductsTable(filterText = '', filterCategory = 'ALL', fil
       <td>${statusBadge(status)}</td>
       <td>
         <div style="display:flex; gap:0.4rem;">
+          <button class="btn btn-secondary btn-sm" onclick="window._stockProduct('${p.ProductID}', 'Inbound')">In</button>
+          <button class="btn btn-secondary btn-sm" onclick="window._stockProduct('${p.ProductID}', 'Outbound')">Out</button>
           ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="window._editProduct('${p.ProductID}')">Edit</button>
           <button class="btn btn-danger btn-sm" onclick="window._deleteProduct('${p.ProductID}')">Del</button>` : '<span style="color:var(--text-muted); font-size:0.8rem;">View only</span>'}
         </div>
       </td>
     </tr>`;
   }).join('');
+
+  if (tbody) tbody.innerHTML = productRows;
+
+  if (grid) {
+    grid.innerHTML = filtered.map(p => {
+      const supp = suppliers.find(s => s.SupplierID === p.SupplierID);
+      const loc = locations.find(l => l.LocationID === p.LocationID);
+      const stock = getProductInventory(p.ProductID);
+      const calc = calculateROPAndSS(p.ProductID);
+      const status = getProductAlertStatus(p.ProductID);
+      const isAdmin = currentUser.Role === 'Admin';
+
+      return `
+        <article class="product-card ${rowClass(status)}">
+          <div class="product-card-header">
+            <code>${p.SKU}</code>
+            ${statusBadge(status)}
+          </div>
+          <h3>${p.ProductName}</h3>
+          <p>${p.Category || 'Uncategorized'}</p>
+          <div class="product-card-metrics">
+            <div><span>Stock</span><strong>${stock}</strong></div>
+            <div><span>ROP</span><strong>${calc.rop}</strong></div>
+            <div><span>Value</span><strong>${fmt$(stock * p.UnitCost)}</strong></div>
+          </div>
+          <div class="product-card-meta">
+            <span>${loc ? loc.LocationName : 'No location'}</span>
+            <span>${supp ? supp.SupplierName : 'No supplier'}</span>
+          </div>
+          <div class="product-card-actions">
+            <button class="btn btn-secondary btn-sm" onclick="window._stockProduct('${p.ProductID}', 'Inbound')">Stock In</button>
+            <button class="btn btn-secondary btn-sm" onclick="window._stockProduct('${p.ProductID}', 'Outbound')">Stock Out</button>
+            ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="window._editProduct('${p.ProductID}')">Edit</button>` : ''}
+          </div>
+        </article>
+      `;
+    }).join('');
+  }
 }
 
 // ─── CATALOG — SUPPLIERS TABLE ────────────────────────────────────────────────
@@ -301,7 +363,8 @@ export function renderProductsTable(filterText = '', filterCategory = 'ALL', fil
 export function renderSuppliersTable(filterText = '') {
   const suppliers = getSuppliers();
   const tbody = document.getElementById('suppliers-table-body');
-  if (!tbody) return;
+  const grid = document.getElementById('suppliers-card-grid');
+  if (!tbody && !grid) return;
 
   const filtered = !filterText ? suppliers : suppliers.filter(s =>
     s.SupplierName.toLowerCase().includes(filterText.toLowerCase()) ||
@@ -310,14 +373,15 @@ export function renderSuppliersTable(filterText = '') {
   );
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:var(--text-muted); padding: 2rem;">No suppliers found.</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="color:var(--text-muted); padding: 2rem;">No suppliers found.</td></tr>`;
+    if (grid) grid.innerHTML = `<div class="empty-catalog-state">No suppliers found.</div>`;
     return;
   }
 
   const currentUser = getCurrentUser();
   const isAdmin = currentUser.Role === 'Admin';
 
-  tbody.innerHTML = filtered.map(s => `
+  const supplierRows = filtered.map(s => `
     <tr>
       <td><strong>${s.SupplierName}</strong></td>
       <td>${s.ContactName}</td>
@@ -332,6 +396,30 @@ export function renderSuppliersTable(filterText = '') {
         </div>
       </td>
     </tr>`).join('');
+
+  if (tbody) tbody.innerHTML = supplierRows;
+
+  if (grid) {
+    grid.innerHTML = filtered.map(s => `
+      <article class="supplier-card">
+        <div class="supplier-card-header">
+          <h3>${s.SupplierName}</h3>
+          <span class="badge badge-success">${s.PaymentTerms || 'Terms unset'}</span>
+        </div>
+        <p>${s.ContactName}</p>
+        <a href="mailto:${s.Email}">${s.Email}</a>
+        <span>${s.PhoneNumber || 'No phone number'}</span>
+        <div class="supplier-card-metrics">
+          <div><span>Avg Lead</span><strong>${s.AvgLeadTime}d</strong></div>
+          <div><span>Max Lead</span><strong>${s.MaxLeadTime}d</strong></div>
+        </div>
+        <div class="product-card-actions">
+          ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="window._editSupplier('${s.SupplierID}')">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="window._deleteSupplier('${s.SupplierID}')">Delete</button>` : '<span style="color:var(--text-muted); font-size:0.8rem;">View only</span>'}
+        </div>
+      </article>
+    `).join('');
+  }
 }
 
 // ─── LOCATIONS TABLE ─────────────────────────────────────────────────────────
@@ -548,10 +636,16 @@ function openProductModal(productId = null) {
     document.getElementById('prod-supplier').value = p.SupplierID;
     if (locSelect) locSelect.value = p.LocationID || '';
     document.getElementById('prod-threshold').value = p.ReorderThreshold;
+    document.getElementById('opening-stock-panel')?.classList.add('hidden');
+    document.getElementById('prod-opening-stock').value = '0';
+    document.getElementById('prod-opening-ref').value = '';
   } else {
     document.getElementById('product-modal-title').textContent = 'New Product Master SKU';
     document.getElementById('product-form').reset();
     document.getElementById('prod-id').value = '';
+    document.getElementById('opening-stock-panel')?.classList.remove('hidden');
+    document.getElementById('prod-opening-stock').value = '0';
+    document.getElementById('prod-opening-ref').value = 'OPENING-STOCK';
   }
   openModal('product-modal');
 }
@@ -614,7 +708,7 @@ export function updateTxQtyValidation(typeSelectId, qtyInputId) {
 
 // ─── TRANSACTION MODAL ────────────────────────────────────────────────────────
 
-export function openTransactionModal(prefilledProductId = null) {
+export function openTransactionModal(prefilledProductId = null, prefilledType = null) {
   const products = getProducts();
   const locations = getLocations();
 
@@ -629,7 +723,14 @@ export function openTransactionModal(prefilledProductId = null) {
   ).join('');
 
   document.getElementById('transaction-form').reset();
-  if (prefilledProductId) txProdSelect.value = prefilledProductId;
+  if (prefilledProductId) {
+    txProdSelect.value = prefilledProductId;
+    const product = products.find(p => p.ProductID === prefilledProductId);
+    if (product?.LocationID) txLocSelect.value = product.LocationID;
+  }
+  if (prefilledType) {
+    document.getElementById('tx-type').value = prefilledType;
+  }
 
   openModal('transaction-modal');
   updateTxQtyValidation('tx-type', 'tx-qty');
@@ -662,8 +763,9 @@ export function initUIEvents() {
   document.getElementById('add-product-btn')?.addEventListener('click', () => openProductModal());
   document.getElementById('product-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const productId = document.getElementById('prod-id').value || null;
     const product = {
-      ProductID: document.getElementById('prod-id').value || null,
+      ProductID: productId,
       SKU: document.getElementById('prod-sku').value.trim().toUpperCase(),
       ProductName: document.getElementById('prod-name').value.trim(),
       Category: document.getElementById('prod-category').value.trim(),
@@ -674,9 +776,24 @@ export function initUIEvents() {
       ReorderThreshold: document.getElementById('prod-threshold').value,
       IsActive: true
     };
-    await saveProduct(product);
+    const savedProduct = await saveProduct(product);
+    const openingQty = parseInt(document.getElementById('prod-opening-stock').value, 10);
+    if (!productId && openingQty > 0) {
+      const currentUser = getCurrentUser();
+      await saveTransaction({
+        ProductID: savedProduct.ProductID,
+        TransactionType: 'Inbound',
+        Quantity: openingQty,
+        LocationID: savedProduct.LocationID,
+        ReferenceNumber: document.getElementById('prod-opening-ref').value.trim() || 'OPENING-STOCK',
+        Notes: 'Opening stock recorded during catalog setup',
+        UserID: currentUser.UserID,
+        TransactionDate: new Date().toISOString()
+      });
+    }
     closeModal('product-modal');
     renderProductsTable();
+    renderLedgerTable();
     renderDashboard();
     runAlertEngine();
   });
@@ -788,13 +905,28 @@ export function initUIEvents() {
     document.getElementById('tab-suppliers-btn').classList.remove('active');
     document.getElementById('catalog-products-pane').classList.remove('hidden');
     document.getElementById('catalog-suppliers-pane').classList.add('hidden');
+    document.getElementById('products-view-toggle')?.classList.remove('hidden');
   });
   document.getElementById('tab-suppliers-btn')?.addEventListener('click', () => {
     document.getElementById('tab-suppliers-btn').classList.add('active');
     document.getElementById('tab-products-btn').classList.remove('active');
     document.getElementById('catalog-suppliers-pane').classList.remove('hidden');
     document.getElementById('catalog-products-pane').classList.add('hidden');
+    document.getElementById('products-view-toggle')?.classList.add('hidden');
     renderSuppliersTable();
+  });
+
+  document.getElementById('grid-view-btn')?.addEventListener('click', () => {
+    document.getElementById('grid-view-btn').classList.add('active');
+    document.getElementById('table-view-btn').classList.remove('active');
+    document.getElementById('products-card-grid').classList.remove('hidden');
+    document.getElementById('products-table-view').classList.add('hidden');
+  });
+  document.getElementById('table-view-btn')?.addEventListener('click', () => {
+    document.getElementById('table-view-btn').classList.add('active');
+    document.getElementById('grid-view-btn').classList.remove('active');
+    document.getElementById('products-table-view').classList.remove('hidden');
+    document.getElementById('products-card-grid').classList.add('hidden');
   });
 
   // SEARCH AND FILTERS — Products
@@ -847,6 +979,7 @@ export function initUIEvents() {
 
   // Global window delegates for table row action buttons
   window._editProduct = (id) => openProductModal(id);
+  window._stockProduct = (id, type) => openTransactionModal(id, type);
   window._deleteProduct = async (id) => {
     if (confirm('Delete this product? Its transaction history is preserved.')) {
       await deleteProduct(id);

@@ -59,6 +59,7 @@ function isSupabaseConfigured() {
 
 async function getSupabaseClient() {
   if (!isSupabaseConfigured()) return null;
+  if (typeof window === 'undefined') return null;
   if (supabaseClient) return supabaseClient;
 
   const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
