@@ -167,6 +167,39 @@ function refreshCurrentView() {
   if (view?.onEnter) view.onEnter();
 }
 
+function updateDatabaseStatusDisplay() {
+  const statusEl = document.getElementById('db-status');
+  if (!statusEl) return;
+
+  const status = getDBStatus();
+  statusEl.classList.toggle('online', status.remoteEnabled);
+  statusEl.classList.toggle('offline', !status.remoteEnabled);
+  statusEl.textContent = status.remoteEnabled ? 'Database: Supabase' : 'Database: Local fallback';
+  statusEl.title = status.message;
+}
+
+function initSyncButton() {
+  const syncBtn = document.getElementById('sync-db-btn');
+  if (!syncBtn) return;
+
+  syncBtn.addEventListener('click', async () => {
+    const originalText = syncBtn.textContent;
+    syncBtn.disabled = true;
+    syncBtn.textContent = 'Syncing...';
+
+    await initDB();
+    runAlertEngine();
+    refreshCurrentView();
+    updateDatabaseStatusDisplay();
+
+    syncBtn.textContent = getDBStatus().remoteEnabled ? 'Synced' : 'Retry Sync';
+    setTimeout(() => {
+      syncBtn.disabled = false;
+      syncBtn.textContent = originalText;
+    }, 1400);
+  });
+}
+
 // ─── RESET DEMO DATA ─────────────────────────────────────────────────────────
 
 function initResetButton() {
@@ -175,6 +208,7 @@ function initResetButton() {
       await resetDB();
       const user = getCurrentUser();
       updateUserDisplay(user);
+      updateDatabaseStatusDisplay();
 
       // Reset role buttons to match default Admin
       document.getElementById('role-admin-btn')?.classList.add('active');
@@ -223,11 +257,15 @@ async function boot() {
   // 7. Initialize the reset button handler
   initResetButton();
 
-  // 8. Display current user profile in the sidebar
+  // 8. Initialize the manual database sync handler
+  initSyncButton();
+
+  // 9. Display current user profile in the sidebar
   const user = getCurrentUser();
   updateUserDisplay(user);
+  updateDatabaseStatusDisplay();
 
-  // 9. Render the default landing view (Dashboard)
+  // 10. Render the default landing view (Dashboard)
   const defaultView = VIEWS.find(v => v.id === 'dashboard-view');
   if (defaultView?.onEnter) defaultView.onEnter();
 
