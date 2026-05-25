@@ -1,4 +1,6 @@
-// db.js - LocalStorage Database & Business Logic Layer for StockSentinel
+// db.js - Local/Cloud Database & Business Logic Layer for StockSentinel
+
+import { SUPABASE_CONFIG } from './supabase-config.js';
 
 // Define local storage keys
 const KEYS = {
@@ -10,6 +12,21 @@ const KEYS = {
   CURRENT_USER: 'stocksentinel_current_user'
 };
 
+const TABLES = {
+  SUPPLIERS: 'suppliers',
+  PRODUCTS: 'products',
+  LOCATIONS: 'locations',
+  USERS: 'users',
+  TRANSACTIONS: 'transactions'
+};
+
+let supabaseClient = null;
+let dbStatus = {
+  provider: 'localStorage',
+  remoteEnabled: false,
+  message: 'Using local browser storage'
+};
+
 // Helper: load from localStorage
 function loadData(key, fallback = []) {
   const data = localStorage.getItem(key);
@@ -19,6 +36,120 @@ function loadData(key, fallback = []) {
 // Helper: save to localStorage
 function saveData(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
+}
+
+function seedLocalStorageIfEmpty() {
+  if (!localStorage.getItem(KEYS.SUPPLIERS)) saveData(KEYS.SUPPLIERS, SEED_SUPPLIERS);
+  if (!localStorage.getItem(KEYS.PRODUCTS)) saveData(KEYS.PRODUCTS, SEED_PRODUCTS);
+  if (!localStorage.getItem(KEYS.LOCATIONS)) saveData(KEYS.LOCATIONS, SEED_LOCATIONS);
+  if (!localStorage.getItem(KEYS.USERS)) saveData(KEYS.USERS, SEED_USERS);
+  if (!localStorage.getItem(KEYS.TRANSACTIONS)) saveData(KEYS.TRANSACTIONS, SEED_TRANSACTIONS);
+  if (!localStorage.getItem(KEYS.CURRENT_USER)) saveData(KEYS.CURRENT_USER, SEED_USERS[0]);
+}
+
+function isSupabaseConfigured() {
+  return Boolean(
+    SUPABASE_CONFIG?.enabled &&
+    SUPABASE_CONFIG.url &&
+    SUPABASE_CONFIG.anonKey &&
+    !SUPABASE_CONFIG.url.includes('YOUR_PROJECT_REF') &&
+    !SUPABASE_CONFIG.anonKey.includes('YOUR_SUPABASE_ANON_KEY')
+  );
+}
+
+async function getSupabaseClient() {
+  if (!isSupabaseConfigured()) return null;
+  if (supabaseClient) return supabaseClient;
+
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+  supabaseClient = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+  return supabaseClient;
+}
+
+async function loadCloudCollection({ table, key, seed, orderBy }) {
+  const client = await getSupabaseClient();
+  if (!client) return;
+
+  let query = client.from(table).select('*');
+  if (orderBy) query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true });
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  if (!data || data.length === 0) {
+    const { error: seedError } = await client.from(table).insert(seed);
+    if (seedError) throw seedError;
+    saveData(key, seed);
+    return;
+  }
+
+  saveData(key, data);
+}
+
+async function persistRecord(table, record, idField) {
+  const client = await getSupabaseClient();
+  if (!client) return;
+
+  const id = record[idField];
+  const { data, error: updateError } = await client
+    .from(table)
+    .update(record)
+    .eq(idField, id)
+    .select(idField);
+
+  if (updateError) throw updateError;
+  if (data && data.length > 0) return;
+
+  const { error: insertError } = await client.from(table).insert(record);
+  if (insertError) throw insertError;
+}
+
+async function deleteRecord(table, idField, id) {
+  const client = await getSupabaseClient();
+  if (!client) return;
+
+  const { error } = await client.from(table).delete().eq(idField, id);
+  if (error) throw error;
+}
+
+async function resetCloudToSeed() {
+  const client = await getSupabaseClient();
+  if (!client) return;
+
+  const deletes = [
+    [TABLES.TRANSACTIONS, 'TransactionID'],
+    [TABLES.PRODUCTS, 'ProductID'],
+    [TABLES.USERS, 'UserID'],
+    [TABLES.LOCATIONS, 'LocationID'],
+    [TABLES.SUPPLIERS, 'SupplierID']
+  ];
+
+  for (const [table, idField] of deletes) {
+    const { error } = await client.from(table).delete().neq(idField, '__never_matches__');
+    if (error) throw error;
+  }
+
+  const inserts = [
+    [TABLES.SUPPLIERS, SEED_SUPPLIERS],
+    [TABLES.LOCATIONS, SEED_LOCATIONS],
+    [TABLES.USERS, SEED_USERS],
+    [TABLES.PRODUCTS, SEED_PRODUCTS],
+    [TABLES.TRANSACTIONS, SEED_TRANSACTIONS]
+  ];
+
+  for (const [table, seed] of inserts) {
+    const { error } = await client.from(table).insert(seed);
+    if (error) throw error;
+  }
+}
+
+function logCloudError(action, error) {
+  console.error(`StockSentinel cloud persistence failed during ${action}:`, error);
+  dbStatus = {
+    provider: 'localStorage',
+    remoteEnabled: false,
+    message: `Cloud sync failed during ${action}. Using local browser storage.`
+  };
 }
 
 // Initial Seed Data
@@ -83,24 +214,58 @@ const SEED_TRANSACTIONS = [
 ];
 
 // Initialize Database on module load
-export function initDB() {
-  if (!localStorage.getItem(KEYS.SUPPLIERS)) saveData(KEYS.SUPPLIERS, SEED_SUPPLIERS);
-  if (!localStorage.getItem(KEYS.PRODUCTS)) saveData(KEYS.PRODUCTS, SEED_PRODUCTS);
-  if (!localStorage.getItem(KEYS.LOCATIONS)) saveData(KEYS.LOCATIONS, SEED_LOCATIONS);
-  if (!localStorage.getItem(KEYS.USERS)) saveData(KEYS.USERS, SEED_USERS);
-  if (!localStorage.getItem(KEYS.TRANSACTIONS)) saveData(KEYS.TRANSACTIONS, SEED_TRANSACTIONS);
-  if (!localStorage.getItem(KEYS.CURRENT_USER)) saveData(KEYS.CURRENT_USER, SEED_USERS[0]); // default to Admin
+export async function initDB() {
+  seedLocalStorageIfEmpty();
+
+  if (!isSupabaseConfigured()) {
+    dbStatus = {
+      provider: 'localStorage',
+      remoteEnabled: false,
+      message: 'Using local browser storage. Add Supabase credentials to enable cloud persistence.'
+    };
+    return dbStatus;
+  }
+
+  try {
+    await loadCloudCollection({ table: TABLES.SUPPLIERS, key: KEYS.SUPPLIERS, seed: SEED_SUPPLIERS, orderBy: { column: 'SupplierName' } });
+    await loadCloudCollection({ table: TABLES.LOCATIONS, key: KEYS.LOCATIONS, seed: SEED_LOCATIONS, orderBy: { column: 'LocationName' } });
+    await loadCloudCollection({ table: TABLES.USERS, key: KEYS.USERS, seed: SEED_USERS, orderBy: { column: 'FullName' } });
+    await loadCloudCollection({ table: TABLES.PRODUCTS, key: KEYS.PRODUCTS, seed: SEED_PRODUCTS, orderBy: { column: 'SKU' } });
+    await loadCloudCollection({ table: TABLES.TRANSACTIONS, key: KEYS.TRANSACTIONS, seed: SEED_TRANSACTIONS, orderBy: { column: 'TransactionDate', ascending: false } });
+
+    dbStatus = {
+      provider: 'Supabase',
+      remoteEnabled: true,
+      message: 'Connected to Supabase cloud database'
+    };
+  } catch (error) {
+    logCloudError('initialization', error);
+  }
+
+  return dbStatus;
 }
 
 // Reset Database function (for utility and fresh testing)
-export function resetDB() {
+export async function resetDB() {
   localStorage.removeItem(KEYS.SUPPLIERS);
   localStorage.removeItem(KEYS.PRODUCTS);
   localStorage.removeItem(KEYS.LOCATIONS);
   localStorage.removeItem(KEYS.USERS);
   localStorage.removeItem(KEYS.TRANSACTIONS);
   localStorage.removeItem(KEYS.CURRENT_USER);
-  initDB();
+  seedLocalStorageIfEmpty();
+
+  if (isSupabaseConfigured()) {
+    try {
+      await resetCloudToSeed();
+    } catch (error) {
+      logCloudError('reset', error);
+    }
+  }
+}
+
+export function getDBStatus() {
+  return dbStatus;
 }
 
 // --- CURRENT USER & ROLES ---
@@ -127,8 +292,11 @@ export function getSuppliers() {
   return loadData(KEYS.SUPPLIERS, SEED_SUPPLIERS);
 }
 
-export function saveSupplier(supplier) {
+export async function saveSupplier(supplier) {
   const suppliers = getSuppliers();
+  supplier.AvgLeadTime = Number(supplier.AvgLeadTime) || 5;
+  supplier.MaxLeadTime = Number(supplier.MaxLeadTime) || 8;
+
   if (supplier.SupplierID) {
     const idx = suppliers.findIndex(s => s.SupplierID === supplier.SupplierID);
     if (idx !== -1) {
@@ -136,18 +304,26 @@ export function saveSupplier(supplier) {
     }
   } else {
     supplier.SupplierID = 's_' + Date.now();
-    supplier.AvgLeadTime = Number(supplier.AvgLeadTime) || 5;
-    supplier.MaxLeadTime = Number(supplier.MaxLeadTime) || 8;
     suppliers.push(supplier);
   }
   saveData(KEYS.SUPPLIERS, suppliers);
+  try {
+    await persistRecord(TABLES.SUPPLIERS, supplier, 'SupplierID');
+  } catch (error) {
+    logCloudError('supplier save', error);
+  }
   return supplier;
 }
 
-export function deleteSupplier(id) {
+export async function deleteSupplier(id) {
   let suppliers = getSuppliers();
   suppliers = suppliers.filter(s => s.SupplierID !== id);
   saveData(KEYS.SUPPLIERS, suppliers);
+  try {
+    await deleteRecord(TABLES.SUPPLIERS, 'SupplierID', id);
+  } catch (error) {
+    logCloudError('supplier delete', error);
+  }
 }
 
 // --- LOCATIONS ---
@@ -155,7 +331,7 @@ export function getLocations() {
   return loadData(KEYS.LOCATIONS, SEED_LOCATIONS);
 }
 
-export function saveLocation(location) {
+export async function saveLocation(location) {
   const locations = getLocations();
   if (location.LocationID) {
     const idx = locations.findIndex(l => l.LocationID === location.LocationID);
@@ -168,13 +344,23 @@ export function saveLocation(location) {
     locations.push(location);
   }
   saveData(KEYS.LOCATIONS, locations);
+  try {
+    await persistRecord(TABLES.LOCATIONS, location, 'LocationID');
+  } catch (error) {
+    logCloudError('location save', error);
+  }
   return location;
 }
 
-export function deleteLocation(id) {
+export async function deleteLocation(id) {
   let locations = getLocations();
   locations = locations.filter(l => l.LocationID !== id);
   saveData(KEYS.LOCATIONS, locations);
+  try {
+    await deleteRecord(TABLES.LOCATIONS, 'LocationID', id);
+  } catch (error) {
+    logCloudError('location delete', error);
+  }
 }
 
 // --- PRODUCTS ---
@@ -187,7 +373,7 @@ export function getProductBySKU(sku) {
   return products.find(p => p.SKU.trim().toUpperCase() === sku.trim().toUpperCase());
 }
 
-export function saveProduct(product) {
+export async function saveProduct(product) {
   const products = getProducts();
   product.UnitCost = Number(product.UnitCost) || 0;
   product.RetailPrice = Number(product.RetailPrice) || 0;
@@ -204,13 +390,23 @@ export function saveProduct(product) {
     products.push(product);
   }
   saveData(KEYS.PRODUCTS, products);
+  try {
+    await persistRecord(TABLES.PRODUCTS, product, 'ProductID');
+  } catch (error) {
+    logCloudError('product save', error);
+  }
   return product;
 }
 
-export function deleteProduct(id) {
+export async function deleteProduct(id) {
   let products = getProducts();
   products = products.filter(p => p.ProductID !== id);
   saveData(KEYS.PRODUCTS, products);
+  try {
+    await deleteRecord(TABLES.PRODUCTS, 'ProductID', id);
+  } catch (error) {
+    logCloudError('product delete', error);
+  }
 }
 
 // --- TRANSACTIONS & INVENTORY LOGIC ---
@@ -218,13 +414,18 @@ export function getTransactions() {
   return loadData(KEYS.TRANSACTIONS, SEED_TRANSACTIONS);
 }
 
-export function saveTransaction(tx) {
+export async function saveTransaction(tx) {
   const transactions = getTransactions();
   tx.TransactionID = tx.TransactionID || 't_' + Date.now();
   tx.TransactionDate = tx.TransactionDate || new Date().toISOString();
   tx.Quantity = Number(tx.Quantity) || 0;
   transactions.push(tx);
   saveData(KEYS.TRANSACTIONS, transactions);
+  try {
+    await persistRecord(TABLES.TRANSACTIONS, tx, 'TransactionID');
+  } catch (error) {
+    logCloudError('transaction save', error);
+  }
   return tx;
 }
 

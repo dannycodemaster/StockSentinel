@@ -660,7 +660,7 @@ export function initUIEvents() {
 
   // PRODUCT CRUD
   document.getElementById('add-product-btn')?.addEventListener('click', () => openProductModal());
-  document.getElementById('product-form')?.addEventListener('submit', (e) => {
+  document.getElementById('product-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const product = {
       ProductID: document.getElementById('prod-id').value || null,
@@ -674,7 +674,7 @@ export function initUIEvents() {
       ReorderThreshold: document.getElementById('prod-threshold').value,
       IsActive: true
     };
-    saveProduct(product);
+    await saveProduct(product);
     closeModal('product-modal');
     renderProductsTable();
     renderDashboard();
@@ -683,7 +683,7 @@ export function initUIEvents() {
 
   // SUPPLIER CRUD
   document.getElementById('add-supplier-btn')?.addEventListener('click', () => openSupplierModal());
-  document.getElementById('supplier-form')?.addEventListener('submit', (e) => {
+  document.getElementById('supplier-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const supplier = {
       SupplierID: document.getElementById('supp-id').value || null,
@@ -695,14 +695,14 @@ export function initUIEvents() {
       AvgLeadTime: document.getElementById('supp-lead-avg').value,
       MaxLeadTime: document.getElementById('supp-lead-max').value
     };
-    saveSupplier(supplier);
+    await saveSupplier(supplier);
     closeModal('supplier-modal');
     renderSuppliersTable();
   });
 
   // LOCATION CRUD
   document.getElementById('add-location-btn')?.addEventListener('click', () => openLocationModal());
-  document.getElementById('location-form')?.addEventListener('submit', (e) => {
+  document.getElementById('location-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const location = {
       LocationID: document.getElementById('loc-id').value || null,
@@ -710,13 +710,13 @@ export function initUIEvents() {
       LocationType: document.getElementById('loc-type').value,
       IsActive: true
     };
-    saveLocation(location);
+    await saveLocation(location);
     closeModal('location-modal');
     renderLocationsTable();
   });
 
   // TRANSACTION FORM SUBMIT
-  document.getElementById('transaction-form')?.addEventListener('submit', (e) => {
+  document.getElementById('transaction-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const qty = parseInt(document.getElementById('tx-qty').value);
     if (qty === 0 || isNaN(qty)) {
@@ -734,7 +734,7 @@ export function initUIEvents() {
       UserID: currentUser.UserID,
       TransactionDate: new Date().toISOString()
     };
-    saveTransaction(tx);
+    await saveTransaction(tx);
     closeModal('transaction-modal');
     renderDashboard();
     renderLedgerTable();
@@ -743,7 +743,7 @@ export function initUIEvents() {
   });
 
   // SCAN QUICK MOVEMENT FORM
-  document.getElementById('scan-quick-movement-form')?.addEventListener('submit', (e) => {
+  document.getElementById('scan-quick-movement-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const qty = parseInt(document.getElementById('scan-tx-qty').value);
     if (qty === 0 || isNaN(qty)) {
@@ -760,7 +760,7 @@ export function initUIEvents() {
       UserID: currentUser.UserID,
       TransactionDate: new Date().toISOString()
     };
-    saveTransaction(tx);
+    await saveTransaction(tx);
     // Feedback
     const btn = document.getElementById('scan-submit-btn');
     btn.textContent = '✓ Movement Saved!';
@@ -847,24 +847,24 @@ export function initUIEvents() {
 
   // Global window delegates for table row action buttons
   window._editProduct = (id) => openProductModal(id);
-  window._deleteProduct = (id) => {
+  window._deleteProduct = async (id) => {
     if (confirm('Delete this product? Its transaction history is preserved.')) {
-      deleteProduct(id);
+      await deleteProduct(id);
       renderProductsTable();
       renderDashboard();
     }
   };
   window._editSupplier = (id) => openSupplierModal(id);
-  window._deleteSupplier = (id) => {
+  window._deleteSupplier = async (id) => {
     if (confirm('Delete this supplier?')) {
-      deleteSupplier(id);
+      await deleteSupplier(id);
       renderSuppliersTable();
     }
   };
   window._editLocation = (id) => openLocationModal(id);
-  window._deleteLocation = (id) => {
+  window._deleteLocation = async (id) => {
     if (confirm('Delete this location?')) {
-      deleteLocation(id);
+      await deleteLocation(id);
       renderLocationsTable();
     }
   };

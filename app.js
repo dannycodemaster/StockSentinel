@@ -1,6 +1,6 @@
 // app.js - StockSentinel Application Entry Point & Navigation Router
 
-import { initDB, resetDB, getCurrentUser, getUsers, setCurrentUser } from './db.js';
+import { initDB, resetDB, getCurrentUser, getUsers, setCurrentUser, getDBStatus } from './db.js';
 import {
   initUIEvents,
   updateUserDisplay,
@@ -170,9 +170,9 @@ function refreshCurrentView() {
 // ─── RESET DEMO DATA ─────────────────────────────────────────────────────────
 
 function initResetButton() {
-  document.getElementById('reset-db-btn')?.addEventListener('click', () => {
+  document.getElementById('reset-db-btn')?.addEventListener('click', async () => {
     if (confirm('Reset all data to the original demo seed data? This cannot be undone.')) {
-      resetDB();
+      await resetDB();
       const user = getCurrentUser();
       updateUserDisplay(user);
 
@@ -201,9 +201,9 @@ function initResetButton() {
 
 // ─── APPLICATION BOOTSTRAP ────────────────────────────────────────────────────
 
-function boot() {
+async function boot() {
   // 1. Initialize the database (seeds localStorage if empty)
-  initDB();
+  await initDB();
 
   // 2. Run the alert engine to populate notification log on first load
   runAlertEngine();
@@ -232,7 +232,13 @@ function boot() {
   if (defaultView?.onEnter) defaultView.onEnter();
 
   console.log('%c StockSentinel booted successfully ', 'background:#0ea5e9; color:#fff; font-weight:bold; border-radius:4px; padding:4px 8px;');
+  console.log('Database:', getDBStatus().message);
 }
 
 // Start the application when the DOM is ready
-document.addEventListener('DOMContentLoaded', boot);
+document.addEventListener('DOMContentLoaded', () => {
+  boot().catch(error => {
+    console.error('StockSentinel failed to boot:', error);
+    alert('StockSentinel could not start. Check the console for details.');
+  });
+});
