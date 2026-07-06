@@ -83,16 +83,11 @@ p {
 
 /* Sidebar (Desktop navigation) */
 aside.sidebar {
-  background-color: var(--bg-secondary);
+  background-color: var(--glass-bg);
   border-right: 1px solid var(--glass-border);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 2rem 1.5rem;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  z-index: 100;
+  backdrop-filter: var(--glass-backdrop);
+  -webkit-backdrop-filter: var(--glass-backdrop);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .brand-container {
@@ -105,12 +100,11 @@ aside.sidebar {
 .brand-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+  background: rgba(255,255,255,0.15);
+  border-radius: var(--border-radius-sm);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .brand-icon svg {
@@ -663,6 +657,12 @@ main.main-content {
   border-radius: var(--border-radius-md);
   background: var(--glass-bg);
   box-shadow: var(--shadow-sm);
+}
+
+.product-card:hover,
+.supplier-card:hover {
+  transform: scale(1.03);
+  box-shadow: var(--shadow-md);
 }
 
 .product-card.row-warning {
@@ -1238,3 +1238,75 @@ tr.row-danger {
     gap: 0;
   }
 }
+.landing-bg h1 {
+  font-size: 2.5rem;
+  color: var(--text-primary);
+  margin-bottom: 1.5rem;
+}
+
+/* Landing page specific styles */
+.landing-bg {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  animation: fadeIn var(--transition-normal);
+}
+
+.login-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-backdrop);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-md);
+  padding: 2rem;
+  width: 340px;
+  margin: 1rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+.login-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+
+/* Spinner for login verification */
+.spinner {
+  border: 4px solid var(--bg-tertiary);
+  border-top: 4px solid var(--accent-primary);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Input field styling for password */
+.input-field {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-family);
+  transition: border-color var(--transition-fast);
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+/* Utility hidden class */
+.hidden { display: none; }

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stock Sentinel – Login</title>
+  <link rel="stylesheet" href="index.css" />
+  
+</head>
+<body class="landing-bg">
+  <h1>Welcome to Stock Sentinel</h1>
+<div class="login-card">
+  <h2>Shop Owner</h2>
+  <input type="password" id="owner-pwd" placeholder="Password" class="input-field" />
+  <button id="owner-login" class="btn btn-primary">Login as Owner</button>
+  <div class="spinner hidden" id="owner-spinner"></div>
+</div>
+<div class="login-card">
+  <h2>Worker</h2>
+  <input type="password" id="worker-pwd" placeholder="Password" class="input-field" />
+  <button id="worker-login" class="btn btn-secondary">Login as Worker</button>
+  <div class="spinner hidden" id="worker-spinner"></div>
+</div>
+
+  <script type="module">
+  import { setCurrentUser, getUsers, initDB } from './db.js';
+  // Ensure fresh seed data
+  localStorage.clear();
+  await initDB();
+  console.log('Landing page login script initialized. Users loaded:', getUsers());
+
+  async function hashPassword(pwd) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pwd);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  async function verifyAndRedirect(userId, pwdInputId, spinnerId) {
+    const spinnerEl = document.getElementById(spinnerId);
+    spinnerEl.classList.remove('hidden');
+    const pwd = document.getElementById(pwdInputId).value.trim();
+    console.log('Entered password (trimmed):', pwd);
+    const hashed = await hashPassword(pwd);
+    console.log('Entered hash:', hashed);
+    const user = getUsers().find(u => u.UserID === userId);
+    console.log('Stored hash:', user?.PasswordHash);
+    if (user && user.PasswordHash === hashed) {
+      setCurrentUser(userId);
+      window.location.href = 'dashboard.html';
+    } else {
+      window.location.href = 'error.html';
+    }
+    spinnerEl.classList.add('hidden');
+  }
+
+  document.getElementById('owner-login').addEventListener('click', () => {
+    verifyAndRedirect('301', 'owner-pwd', 'owner-spinner');
+  });
+  document.getElementById('worker-login').addEventListener('click', () => {
+    verifyAndRedirect('302', 'worker-pwd', 'worker-spinner');
+  });
+</script>
+</body>
+</html>

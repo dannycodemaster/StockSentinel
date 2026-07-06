@@ -84,9 +84,41 @@ async function toggleCameraScanner() {
     // Prefer rear/environment camera on mobile
     const cameraId = cameras.find(c => /back|rear|environment/i.test(c.label))?.id || cameras[0].id;
 
+    const formatsToSupport = [];
+    if (typeof Html5QrcodeSupportedFormats !== 'undefined') {
+      formatsToSupport.push(
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.CODE_93,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.EAN_8,
+        Html5QrcodeSupportedFormats.UPC_A,
+        Html5QrcodeSupportedFormats.UPC_E,
+        Html5QrcodeSupportedFormats.ITF
+      );
+    }
+
+    const config = {
+      fps: 15,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        // A rectangular scanning area allows barcodes to be fully read while still supporting QR codes
+        const width = Math.min(viewfinderWidth * 0.85, 450);
+        const height = Math.min(viewfinderHeight * 0.6, 250);
+        return {
+          width: Math.max(width, 260),
+          height: Math.max(height, 160)
+        };
+      },
+      showTorchButtonIfSupported: true
+    };
+    if (formatsToSupport.length > 0) {
+      config.formatsToSupport = formatsToSupport;
+    }
+
     await html5QrCode.start(
       cameraId,
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      config,
       (decodedText) => {
         // Success callback: decodedText is the barcode/QR value
         handleScannedCode(decodedText);

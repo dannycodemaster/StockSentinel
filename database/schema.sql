@@ -23,7 +23,8 @@ create table if not exists public.users (
   "UserID" text primary key,
   "FullName" text not null,
   "Email" text not null,
-  "Role" text not null check ("Role" in ('Admin', 'Worker'))
+  "Role" text not null check ("Role" in ('Admin', 'Worker')),
+  "PasswordHash" text
 );
 
 create table if not exists public.products (

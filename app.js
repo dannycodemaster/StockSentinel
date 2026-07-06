@@ -53,6 +53,12 @@ const VIEWS = [
     title: 'Alert Center',
     subtitle: 'Simulated SMS & email low-stock notifications log',
     onEnter: () => renderNotificationsFeed()
+  },
+  {
+    id: 'selling-view',
+    title: 'Sell',
+    subtitle: 'Record sales transactions and reduce stock',
+    onEnter: () => {}
   }
 ];
 
@@ -233,11 +239,27 @@ function initResetButton() {
   });
 }
 
+function initLogoutButton() {
+  const handler = () => {
+    localStorage.removeItem('stocksentinel_current_user');
+    window.location.href = 'index.html';
+  };
+  document.getElementById('logout-btn')?.addEventListener('click', handler);
+  document.getElementById('logout-btn-top')?.addEventListener('click', handler);
+}
+
 // ─── APPLICATION BOOTSTRAP ────────────────────────────────────────────────────
 
 async function boot() {
   // 1. Initialize the database (seeds localStorage if empty)
   await initDB();
+
+  // Enforce login
+  const user = getCurrentUser();
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
 
   // 2. Run the alert engine to populate notification log on first load
   runAlertEngine();
@@ -257,11 +279,13 @@ async function boot() {
   // 7. Initialize the reset button handler
   initResetButton();
 
+  // 7.5. Initialize the logout button handler
+  initLogoutButton();
+
   // 8. Initialize the manual database sync handler
   initSyncButton();
 
   // 9. Display current user profile in the sidebar
-  const user = getCurrentUser();
   updateUserDisplay(user);
   updateDatabaseStatusDisplay();
 

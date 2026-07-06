@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Failed – Stock Sentinel</title>
+  <link rel="stylesheet" href="index.css" />
+  <style>
+    .error-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--border-radius-md);
+      padding: 2rem;
+      width: 360px;
+      text-align: center;
+      margin: 2rem auto;
+      box-shadow: var(--shadow-lg);
+    }
+    .error-card h2 {
+      color: var(--color-danger);
+      margin-bottom: 1rem;
+    }
+    .error-card p {
+      color: var(--text-secondary);
+      margin-bottom: 1.5rem;
+    }
+    .error-card a {
+      display: inline-block;
+      padding: 0.6rem 1.2rem;
+      background: var(--accent-primary);
+      color: var(--text-primary);
+      border-radius: var(--border-radius-sm);
+      text-decoration: none;
+      font-weight: 600;
+      transition: background var(--transition-fast);
+    }
+    .error-card a:hover {
+      background: var(--accent-primary-hover);
+    }
+  </style>
+</head>
+<body class="landing-bg">
+  <div class="error-card">
+    <h2>Authentication Failed</h2>
+    <p>The credentials you entered are not valid. Please try again or contact support.</p>
+    <a href="landing.html">Back to Login</a>
+  </div>
+</body>
+</html>

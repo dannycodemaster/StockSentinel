@@ -9,7 +9,7 @@ import {
   calculateROPAndSS, getProductAlertStatus,
   getCurrentUser
 } from './db.js';
-
+let pendingSupplierId = null;
 // ─── NOTIFICATION LOG (in-memory, simulated alert engine) ────────────────────
 const NOTIF_KEY = 'stocksentinel_notifications';
 
@@ -84,7 +84,7 @@ export function runAlertEngine() {
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 function fmt$(n) {
-  return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '₦' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function fmtDate(iso) {
@@ -149,6 +149,7 @@ export function renderDashboard() {
           <h4>${p.ProductName} <span style="font-weight:400; font-size:0.8rem; opacity:0.7;">${p.SKU}</span></h4>
           <p>${status === 'CRITICAL' ? 'Out of stock — order immediately.' : `${stock} units left — ROP: ${calc.rop}, Safety Stock: ${calc.safetyStock}`}</p>
         </div>
+        <button class="btn btn-primary btn-sm" onclick="sendInvoice('${p.SKU}')">Send Invoice</button>
         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('quick-checkin-btn').click()">Restock</button>
       </div>`;
   });
@@ -380,6 +381,7 @@ export function renderSuppliersTable(filterText = '') {
 
   const currentUser = getCurrentUser();
   const isAdmin = currentUser.Role === 'Admin';
+  let pendingSupplierId = null;
 
   const supplierRows = filtered.map(s => `
     <tr>
@@ -392,7 +394,8 @@ export function renderSuppliersTable(filterText = '') {
       <td>
         <div style="display:flex; gap:0.4rem;">
           ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="window._editSupplier('${s.SupplierID}')">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="window._deleteSupplier('${s.SupplierID}')">Del</button>` : '<span style="color:var(--text-muted); font-size:0.8rem;">View only</span>'}
+          <button class="btn btn-danger btn-sm" onclick="window._deleteSupplier('${s.SupplierID}')">Del</button>
+          <button class="btn btn-primary btn-sm" onclick="window._sendOrder('${s.SupplierID}')">Send Order</button>` : '<span style="color:var(--text-muted); font-size:0.8rem;">View only</span>'}
         </div>
       </td>
     </tr>`).join('');
@@ -415,7 +418,8 @@ export function renderSuppliersTable(filterText = '') {
         </div>
         <div class="product-card-actions">
           ${isAdmin ? `<button class="btn btn-secondary btn-sm" onclick="window._editSupplier('${s.SupplierID}')">Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="window._deleteSupplier('${s.SupplierID}')">Delete</button>` : '<span style="color:var(--text-muted); font-size:0.8rem;">View only</span>'}
+          <button class="btn btn-danger btn-sm" onclick="window._deleteSupplier('${s.SupplierID}')">Delete</button>
+          <button class="btn btn-primary btn-sm" onclick="window._sendOrder('${s.SupplierID}')">Send Order</button>` : '<span style="color:var(--text-muted); font-size:0.8rem;">View only</span>'}
         </div>
       </article>
     `).join('');
@@ -513,7 +517,7 @@ export function renderLedgerTable(filterProductId = 'ALL', filterType = 'ALL') {
         <td>${txTypeBadge(tx.TransactionType)}</td>
         <td class="text-right" style="font-weight:700; font-size:1.05rem; color: ${qtyColor};">${qtySign}</td>
         <td style="font-size:0.82rem; color:var(--text-secondary);">${tx.ReferenceNumber || '—'}</td>
-        <td style="font-size:0.82rem;">${tx.UserID === '301' ? 'Sarah C.' : tx.UserID === '302' ? 'John D.' : tx.UserID}</td>
+        <td style="font-size:0.82rem;">${tx.UserID === '301' ? 'Wakwe D.' : tx.UserID === '302' ? 'John D.' : tx.UserID}</td>
         <td style="font-size:0.82rem; color:var(--text-secondary);">${tx.Notes || '—'}</td>
       </tr>`;
   }).join('');
@@ -738,7 +742,64 @@ export function openTransactionModal(prefilledProductId = null, prefilledType = 
 
 // ─── REGISTER ALL UI EVENT LISTENERS ─────────────────────────────────────────
 
+// Send invoice for out‑of‑stock product
+async function sendInvoice(sku) {
+  if (!sku) {
+    alert('SKU missing for invoice.');
+    return;
+  }
+  try {
+    const resp = await fetch('/api/send-invoice', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId: sku })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      alert('Invoice sent successfully.');
+    } else {
+      alert(`Failed to send invoice: ${data.error || resp.statusText}`);
+    }
+  } catch (e) {
+    console.error('Error sending invoice:', e);
+    alert('Unexpected error while sending invoice.');
+  }
+}
+
+
 export function initUIEvents() {
+  // ---- Catalog view mode persistence ----
+  const savedView = localStorage.getItem('catalogViewMode') || 'grid';
+  if (savedView === 'grid') {
+    document.getElementById('grid-view-btn')?.classList.add('active');
+    document.getElementById('table-view-btn')?.classList.remove('active');
+    document.getElementById('products-card-grid')?.classList.remove('hidden');
+    document.getElementById('products-table-view')?.classList.add('hidden');
+  } else {
+    document.getElementById('table-view-btn')?.classList.add('active');
+    document.getElementById('grid-view-btn')?.classList.remove('active');
+    document.getElementById('products-table-view')?.classList.remove('hidden');
+    document.getElementById('products-card-grid')?.classList.add('hidden');
+  }
+  
+  // Render products table and card grid initial load
+  renderProductsTable();
+
+  // Save view mode on toggle and update display classes
+  document.getElementById('grid-view-btn')?.addEventListener('click', () => {
+    localStorage.setItem('catalogViewMode', 'grid');
+    document.getElementById('grid-view-btn').classList.add('active');
+    document.getElementById('table-view-btn').classList.remove('active');
+    document.getElementById('products-card-grid').classList.remove('hidden');
+    document.getElementById('products-table-view').classList.add('hidden');
+  });
+  document.getElementById('table-view-btn')?.addEventListener('click', () => {
+    localStorage.setItem('catalogViewMode', 'table');
+    document.getElementById('table-view-btn').classList.add('active');
+    document.getElementById('grid-view-btn').classList.remove('active');
+    document.getElementById('products-table-view').classList.remove('hidden');
+    document.getElementById('products-card-grid').classList.add('hidden');
+  });
   // Close modal buttons
   document.getElementById('product-modal-close')?.addEventListener('click', () => closeModal('product-modal'));
   document.getElementById('product-form-cancel')?.addEventListener('click', () => closeModal('product-modal'));
@@ -916,18 +977,6 @@ export function initUIEvents() {
     renderSuppliersTable();
   });
 
-  document.getElementById('grid-view-btn')?.addEventListener('click', () => {
-    document.getElementById('grid-view-btn').classList.add('active');
-    document.getElementById('table-view-btn').classList.remove('active');
-    document.getElementById('products-card-grid').classList.remove('hidden');
-    document.getElementById('products-table-view').classList.add('hidden');
-  });
-  document.getElementById('table-view-btn')?.addEventListener('click', () => {
-    document.getElementById('table-view-btn').classList.add('active');
-    document.getElementById('grid-view-btn').classList.remove('active');
-    document.getElementById('products-table-view').classList.remove('hidden');
-    document.getElementById('products-card-grid').classList.add('hidden');
-  });
 
   // SEARCH AND FILTERS — Products
   document.getElementById('search-products')?.addEventListener('input', (e) => {
@@ -1001,6 +1050,47 @@ export function initUIEvents() {
       renderLocationsTable();
     }
   };
+  // Order modal close / cancel buttons
+  document.getElementById('order-modal-close')?.addEventListener('click', () => closeModal('order-modal'));
+  document.getElementById('order-form-cancel')?.addEventListener('click', () => closeModal('order-modal'));
+  
+  // Open order modal instead of direct send
+  window._sendOrder = (id) => {
+    pendingSupplierId = id;
+    // Reset form fields
+    const qtyInput = document.getElementById('order-qty');
+    const dateInput = document.getElementById('order-date');
+    if (qtyInput) qtyInput.value = '';
+    if (dateInput) dateInput.value = '';
+    openModal('order-modal');
+  };
+
+  // Order form submit handler
+  document.getElementById('order-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!pendingSupplierId) return;
+    const quantity = document.getElementById('order-qty').value;
+    const deliveryDate = document.getElementById('order-date').value;
+    try {
+      const resp = await fetch('/api/send-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supplierId: pendingSupplierId, quantity, deliveryDate })
+      });
+      if (resp.ok) {
+        alert('Order sent successfully');
+        closeModal('order-modal');
+        pendingSupplierId = null;
+        renderSuppliersTable(); // refresh if needed
+      } else {
+        const data = await resp.json();
+        alert('Failed to send order: ' + (data.error || resp.statusText));
+      }
+    } catch (err) {
+      console.error('Error sending order:', err);
+      alert('Error sending order');
+    }
+  });
 }
 
 // ─── USER / ROLE DISPLAY ─────────────────────────────────────────────────────

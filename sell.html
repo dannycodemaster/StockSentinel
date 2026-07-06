@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StockSentinel - Sell Items</title>
+  <link rel="stylesheet" href="index.css" />
+</head>
+<body class="landing-bg">
+  <h1>Sell Items</h1>
+  <div class="login-card" style="max-width:400px; margin:auto;">
+    <form id="sell-form">
+      <div class="form-group">
+        <label for="sell-product">Product *</label>
+        <select class="form-control" id="sell-product" required></select>
+      </div>
+      <div class="form-group">
+        <label for="sell-price">Price (USD)</label>
+        <input type="text" class="form-control" id="sell-price" readonly />
+      </div>
+      <div class="form-group">
+        <label for="sell-qty">Quantity *</label>
+        <input type="number" class="form-control" id="sell-qty" min="1" value="1" required />
+      </div>
+      <div class="form-group">
+        <label for="sell-total">Total (USD)</label>
+        <input type="text" class="form-control" id="sell-total" readonly />
+      </div>
+      <div class="form-group">
+        <label for="sell-date">Date</label>
+        <input type="date" class="form-control" id="sell-date" readonly />
+      </div>
+      <div class="form-group">
+        <label for="sell-location">Location *</label>
+        <select class="form-control" id="sell-location" required></select>
+      </div>
+      <div class="form-group">
+        <label for="sell-notes">Notes</label>
+        <input type="text" class="form-control" id="sell-notes" placeholder="Optional notes" />
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Submit Sale</button>
+    </form>
+  </div>
+
+  <script type="module">
+    import { getProducts, getLocations, saveTransaction, getCurrentUser } from './db.js';
+    // Populate product dropdown and create a map for price lookup
+    const productSelect = document.getElementById('sell-product');
+    const products = getProducts();
+    const productMap = {};
+    products.forEach(p => { productMap[p.ProductID] = p; });
+    productSelect.innerHTML = products.map(p => `
+      <option value="${p.ProductID}">${p.SKU} – ${p.ProductName}</option>
+    `).join('');
+    // References to form fields
+    const priceInput = document.getElementById('sell-price');
+    const totalInput = document.getElementById('sell-total');
+    const qtyInput = document.getElementById('sell-qty');
+    const dateInput = document.getElementById('sell-date');
+    // Set sell date to today (readonly)
+    dateInput.value = new Date().toISOString().split('T')[0];
+    // Update price and total when product changes
+    productSelect.addEventListener('change', () => {
+      const prod = productMap[productSelect.value];
+      if (prod) {
+        const price = Number(prod.RetailPrice) || 0;
+        priceInput.value = price.toFixed(2);
+        const qty = Number(qtyInput.value) || 0;
+        totalInput.value = (price * qty).toFixed(2);
+      } else {
+        priceInput.value = '';
+        totalInput.value = '';
+      }
+    });
+    // Recalculate total when quantity changes
+    qtyInput.addEventListener('input', () => {
+      const price = Number(priceInput.value) || 0;
+      const qty = Number(qtyInput.value) || 0;
+      totalInput.value = (price * qty).toFixed(2);
+    });
+    // Populate location dropdown
+    const locationSelect = document.getElementById('sell-location');
+    const locations = getLocations();
+    locationSelect.innerHTML = locations.map(l => `
+      <option value="${l.LocationID}">${l.LocationName}</option>
+    `).join('');
+    // Handle form submit
+    document.getElementById('sell-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const productId = productSelect.value;
+      const qty = parseInt(document.getElementById('sell-qty').value, 10);
+      const locationId = locationSelect.value;
+      const notes = document.getElementById('sell-notes').value.trim();
+      const currentUser = getCurrentUser();
+      await saveTransaction({
+        ProductID: productId,
+        TransactionType: 'Outbound',
+        Quantity: qty,
+        LocationID: locationId,
+        ReferenceNumber: 'SALE',
+        Notes: notes,
+        UserID: currentUser.UserID,
+        TransactionDate: new Date().toISOString()
+      });
+      alert('Sale recorded successfully. Stock has been updated.');
+      window.location.href = 'dashboard.html';
+    });
+  </script>
+</body>
+</html>

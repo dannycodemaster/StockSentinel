@@ -175,8 +175,8 @@ const SEED_PRODUCTS = [
 ];
 
 const SEED_USERS = [
-  { UserID: '301', FullName: 'Sarah Connor', Email: 'sarah@stocksentinel.com', Role: 'Admin' },
-  { UserID: '302', FullName: 'John Doe', Email: 'john@stocksentinel.com', Role: 'Worker' }
+  { UserID: '301', FullName: 'Wakwe David', Email: 'david@stocksentinel.com', Role: 'Admin', PasswordHash: '04aeeb2222dcd4c8026fc3ae138bf0d072a18bf9b832ad93fffdbe18140d973d' },
+  { UserID: '302', FullName: 'John Doe', Email: 'john@stocksentinel.com', Role: 'Worker', PasswordHash: 'bfca008ab78c91ff20ade66fc50e0d6a3601f6fc7c29ed130ad4338ad348caca' }
 ];
 
 // Seed transactions to establish historical data for ROP/SS calculations
@@ -271,7 +271,14 @@ export function getDBStatus() {
 
 // --- CURRENT USER & ROLES ---
 export function getCurrentUser() {
-  return loadData(KEYS.CURRENT_USER, SEED_USERS[0]);
+  const user = loadData(KEYS.CURRENT_USER, null);
+  if (user && !user.PasswordHash) {
+    const seedUser = SEED_USERS.find(su => su.UserID === user.UserID);
+    if (seedUser) {
+      user.PasswordHash = seedUser.PasswordHash;
+    }
+  }
+  return user;
 }
 
 export function setCurrentUser(userId) {
@@ -285,7 +292,18 @@ export function setCurrentUser(userId) {
 }
 
 export function getUsers() {
-  return loadData(KEYS.USERS, SEED_USERS);
+  const users = loadData(KEYS.USERS, SEED_USERS);
+  return users.map(user => {
+    // If the database did not sync or have the PasswordHash field (e.g. older schema),
+    // we backfill it from the seed users so authentication works properly.
+    if (!user.PasswordHash) {
+      const seedUser = SEED_USERS.find(su => su.UserID === user.UserID);
+      if (seedUser) {
+        user.PasswordHash = seedUser.PasswordHash;
+      }
+    }
+    return user;
+  });
 }
 
 // --- SUPPLIERS ---

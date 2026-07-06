@@ -1,0 +1,19 @@
+{
+  "name": "stocksentinel",
+  "version": "1.0.0",
+  "description": "Stock Sentinel front‑end with local Express proxy for market data",
+  "main": "server.js",
+  "scripts": {
+    "start:api": "node server.js",
+    "dev": "npm run start:api"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-fetch": "^3.3.2",
+    "nodemailer": "^9.0.0"
+  }
+}
