@@ -1246,6 +1246,7 @@ tr.row-danger {
 
 /* Landing page specific styles */
 .landing-bg {
+  position: relative; /* enable pseudo-element positioning */
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -1253,6 +1254,34 @@ tr.row-danger {
   justify-content: center;
   background: var(--bg-primary);
   animation: fadeIn var(--transition-normal);
+}
+
+/* Background image layer */
+.landing-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  animation: bgCycle 12s infinite;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: -2;
+}
+
+@keyframes bgCycle {
+  0% { background-image: url('shopping1.jpg'); }
+  33% { background-image: url('shopping2.jpg'); }
+  66% { background-image: url('shopping.jpg'); }
+  100% { background-image: url('shopping1.jpg'); }
+}
+
+/* Dark overlay with 75% opacity */
+.landing-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: -1;
 }
 
 .login-card {
