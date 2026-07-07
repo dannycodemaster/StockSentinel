@@ -38,7 +38,11 @@
         <label for="sell-notes">Notes</label>
         <input type="text" class="form-control" id="sell-notes" placeholder="Optional notes" />
       </div>
-      <button type="submit" class="btn btn-primary w-full">Submit Sale</button>
+      
+  <div class="form-group">
+    <label><input type="checkbox" id="print-receipt-checkbox"> Print receipt after sale</label>
+  </div>
+  <button type="submit" class="btn btn-primary w-full">Submit Sale</button>
     </form>
   </div>
 
@@ -88,8 +92,11 @@
     document.getElementById('sell-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const productId = productSelect.value;
+      const product = productMap[productId];
       const qty = parseInt(document.getElementById('sell-qty').value, 10);
+      const total = document.getElementById('sell-total').value;
       const locationId = locationSelect.value;
+      const locationName = locationSelect.options[locationSelect.selectedIndex].text;
       const notes = document.getElementById('sell-notes').value.trim();
       const currentUser = getCurrentUser();
       await saveTransaction({
@@ -102,6 +109,20 @@
         UserID: currentUser.UserID,
         TransactionDate: new Date().toISOString()
       });
+      // Print receipt if checkbox is checked
+      if (document.getElementById('print-receipt-checkbox').checked) {
+        const printWindow = window.open('', '', 'height=400,width=600');
+        printWindow.document.write(`<html><head><title>Receipt</title></head><body>
+          <h1>Receipt</h1>
+          <p>Product: ${product.ProductName}</p>
+          <p>Quantity: ${qty}</p>
+          <p>Total: $${total}</p>
+          <p>Location: ${locationName}</p>
+          <p>Date: ${new Date().toLocaleDateString()}</p>
+          </body></html>`);
+        printWindow.document.close();
+        printWindow.print();
+      }
       alert('Sale recorded successfully. Stock has been updated.');
       window.location.href = 'dashboard.html';
     });
