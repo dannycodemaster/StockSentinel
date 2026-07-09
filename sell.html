@@ -6,69 +6,265 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>StockSentinel - Sell Dashboard</title>
   <link rel="stylesheet" href="index.css" />
+  <style>
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 1.5rem;
+      min-height: 100vh;
+    }
+    
+    .sell-container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .sell-header {
+      margin-bottom: 1.5rem;
+    }
+
+    .sell-header h1 {
+      font-size: 1.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .sell-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    .sell-card {
+      background: var(--glass-bg);
+      backdrop-filter: var(--glass-backdrop);
+      -webkit-backdrop-filter: var(--glass-backdrop);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--border-radius-md);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .sell-card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--glass-border);
+      padding-bottom: 0.5rem;
+    }
+
+    /* Cart Quantity Controls & Action Styling */
+    .btn-qty {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1px solid var(--glass-border);
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.9rem;
+      transition: all var(--transition-fast);
+      user-select: none;
+    }
+
+    .btn-qty:hover {
+      background-color: var(--accent-primary);
+      border-color: var(--accent-primary);
+      transform: scale(1.05);
+    }
+
+    .qty-display {
+      display: inline-block;
+      min-width: 24px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin: 0 0.4rem;
+    }
+
+    .btn-remove {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.75rem;
+      border-radius: var(--border-radius-sm);
+      background-color: var(--color-danger);
+      color: var(--text-primary);
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .btn-remove:hover {
+      background-color: hsl(0, 84%, 50%);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+    }
+
+    .cart-summary-section {
+      margin-top: 1.5rem;
+      border-top: 1px solid var(--glass-border);
+      padding-top: 1rem;
+    }
+
+    .grand-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      color: var(--text-primary);
+    }
+
+    .cart-btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .btn-success {
+      background-color: var(--color-success);
+      color: var(--text-primary);
+    }
+
+    .btn-success:hover {
+      background-color: hsl(142, 70%, 40%);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Scrollable Cart Table Container */
+    .cart-table-wrapper {
+      max-height: 380px;
+      overflow-y: auto;
+      border: 1px solid var(--glass-border);
+      border-radius: var(--border-radius-sm);
+      background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 900px) {
+      .sell-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .cart-btn-group {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
-<body class="landing-bg">
-  <h1>Sell Dashboard</h1>
-  <div class="login-card" style="max-width:400px; margin:auto;">
-    <form id="sell-form">
-      <div class="form-group">
-        <label for="sell-product">Product *</label>
-        <select class="form-control" id="sell-product" required></select>
-      </div>
-      <div class="form-group">
-        <label for="sell-price">Price (Naira)</label>
-        <input type="text" class="form-control" id="sell-price" readonly />
-      </div>
-      <div class="form-group">
-        <label for="sell-qty">Quantity *</label>
-        <input type="number" class="form-control" id="sell-qty" min="1" value="1" required />
-      </div>
-      <div class="form-group">
-        <label for="sell-total">Total (Naira)</label>
-        <input type="text" class="form-control" id="sell-total" readonly />
-      </div>
-      <div class="form-group">
-        <label for="sell-date">Date</label>
-        <input type="date" class="form-control" id="sell-date" readonly />
-      </div>
-      <div class="form-group">
-        <label for="sell-location">Location *</label>
-        <select class="form-control" id="sell-location" required></select>
-      </div>
-      <div class="form-group">
-        <label for="sell-notes">Notes</label>
-        <input type="text" class="form-control" id="sell-notes" placeholder="Optional notes" />
+<body>
+  <div class="sell-container">
+    <div class="sell-header">
+      <h1>Sell Dashboard</h1>
+    </div>
+
+    <div class="sell-grid">
+      <!-- LEFT COLUMN: SALE ENTRY FORM -->
+      <div class="sell-card">
+        <h2>Enter Sale Details</h2>
+        <form id="sell-form">
+          <div class="form-group">
+            <label for="sell-product">Product *</label>
+            <select class="form-control" id="sell-product" required></select>
+          </div>
+          <div class="form-group">
+            <label for="sell-price">Price (Naira)</label>
+            <input type="text" class="form-control" id="sell-price" readonly />
+          </div>
+          <div class="form-group">
+            <label for="sell-qty">Quantity *</label>
+            <input type="number" class="form-control" id="sell-qty" min="1" value="1" required />
+          </div>
+          <div class="form-group">
+            <label for="sell-total">Total (Naira)</label>
+            <input type="text" class="form-control" id="sell-total" readonly />
+          </div>
+          <div class="form-group">
+            <label for="sell-date">Date</label>
+            <input type="date" class="form-control" id="sell-date" readonly />
+          </div>
+          <div class="form-group">
+            <label for="sell-location">Location *</label>
+            <select class="form-control" id="sell-location" required></select>
+          </div>
+          <div class="form-group">
+            <label for="sell-notes">Notes</label>
+            <input type="text" class="form-control" id="sell-notes" placeholder="Optional notes" />
+          </div>
+
+          <button type="button" id="add-to-cart" class="btn btn-primary w-full mt-2">Add to Cart</button>
+        </form>
       </div>
 
-      <div class="form-group">
-        <button type="button" id="print-receipt-btn" class="btn btn-secondary w-full mb-2">Print Receipt</button>
+      <!-- RIGHT COLUMN: LIVE CART & ACTIONS -->
+      <div class="sell-card">
+        <h2>Cart Items</h2>
+        <div class="cart-table-wrapper">
+          <table class="data-table" style="margin: 0;">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th class="text-right">Price</th>
+                <th class="text-center" style="width: 120px;">Qty</th>
+                <th class="text-right">Subtotal</th>
+                <th class="text-center" style="width: 80px;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="cart-table-body">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="cart-summary-section">
+          <div class="grand-total-row">
+            <span>Grand Total:</span>
+            <span id="grand-total-val">₦0.00</span>
+          </div>
+          <div class="cart-btn-group">
+            <button type="button" id="finalize-sale" class="btn btn-success">Finalize Sale</button>
+            <button type="button" id="print-receipt-btn" class="btn btn-secondary">Print Receipt</button>
+          </div>
+        </div>
       </div>
-      <button type="button" id="add-to-cart" class="btn btn-primary w-full mb-2">Add to Cart</button>
-      <button type="button" id="finalize-sale" class="btn btn-success w-full">Finalize Sale</button>
-    </form>
+    </div>
   </div>
-<div id="cart-section" class="mt-4"></div>
 
   <script type="module">
     import { getProducts, getLocations, saveTransaction, getCurrentUser } from './db.js';
+
     // Populate product dropdown and create a map for price lookup
     const productSelect = document.getElementById('sell-product');
     const products = getProducts();
     const productMap = {};
     products.forEach(p => { productMap[p.ProductID] = p; });
+    
     productSelect.innerHTML = products.map(p => `
       <option value="${p.ProductID}">${p.SKU} – ${p.ProductName}</option>
     `).join('');
+
     // References to form fields
     const priceInput = document.getElementById('sell-price');
     const totalInput = document.getElementById('sell-total');
     const qtyInput = document.getElementById('sell-qty');
     const dateInput = document.getElementById('sell-date');
+    const locationSelect = document.getElementById('sell-location');
+    const notesInput = document.getElementById('sell-notes');
+    const cartTableBody = document.getElementById('cart-table-body');
+    const grandTotalVal = document.getElementById('grand-total-val');
+
     // Set sell date to today (readonly)
     dateInput.value = new Date().toISOString().split('T')[0];
+
     // Update price and total when product changes
-    productSelect.addEventListener('change', () => {
+    function updateProductPrices() {
       const prod = productMap[productSelect.value];
       if (prod) {
         const price = Number(prod.RetailPrice) || 0;
@@ -79,76 +275,146 @@
         priceInput.value = '';
         totalInput.value = '';
       }
-    });
+    }
+
+    productSelect.addEventListener('change', updateProductPrices);
+
     // Recalculate total when quantity changes
     qtyInput.addEventListener('input', () => {
       const price = Number(priceInput.value) || 0;
       const qty = Number(qtyInput.value) || 0;
       totalInput.value = (price * qty).toFixed(2);
     });
+
     // Populate location dropdown
-    const locationSelect = document.getElementById('sell-location');
     const locations = getLocations();
     locationSelect.innerHTML = locations.map(l => `
       <option value="${l.LocationID}">${l.LocationName}</option>
     `).join('');
+
+    // Initialize dropdown prices
+    if (products.length > 0) {
+      updateProductPrices();
+    }
+
     // Multi-item cart logic
     const cart = [];
 
     function updateCartUI() {
-      const container = document.getElementById('cart-section');
       if (cart.length === 0) {
-        container.innerHTML = '<p>Cart is empty.</p>';
+        cartTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="text-center" style="color: var(--text-secondary); padding: 2rem;">
+              Cart is empty. Add items from the left form.
+            </td>
+          </tr>
+        `;
+        grandTotalVal.textContent = '₦0.00';
         return;
       }
-      const rows = cart.map((item, i) => `<tr><td>${i+1}</td><td>${item.name}</td><td>₦${item.price.toFixed(2)}</td><td>${item.qty}</td><td>₦${item.subtotal.toFixed(2)}</td></tr>`).join('');
+
+      cartTableBody.innerHTML = cart.map((item, i) => `
+        <tr>
+          <td>
+            <strong>${item.name}</strong>
+          </td>
+          <td class="text-right">₦${item.price.toFixed(2)}</td>
+          <td class="text-center">
+            <div style="display: inline-flex; align-items: center; justify-content: center;">
+              <button type="button" class="btn-qty btn-qty-dec" data-index="${i}">-</button>
+              <span class="qty-display">${item.qty}</span>
+              <button type="button" class="btn-qty btn-qty-inc" data-index="${i}">+</button>
+            </div>
+          </td>
+          <td class="text-right">₦${item.subtotal.toFixed(2)}</td>
+          <td class="text-center">
+            <button type="button" class="btn-remove" data-index="${i}">Remove</button>
+          </td>
+        </tr>
+      `).join('');
+
       const total = cart.reduce((s, it) => s + it.subtotal, 0);
-      container.innerHTML = `
-        <h3>Cart</h3>
-        <table class="table table-striped">
-          <thead><tr><th>#</th><th>Product</th><th>Price</th><th>Qty</th><th>Subtotal</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <p><strong>Grand Total: ₦${total.toFixed(2)}</strong></p>
-      `;
+      grandTotalVal.textContent = `₦${total.toFixed(2)}`;
     }
+
+    // Initialize Cart empty state
+    updateCartUI();
 
     // Add to Cart button handler
     document.getElementById('add-to-cart').addEventListener('click', () => {
       const productId = productSelect.value;
       const product = productMap[productId];
       const qty = parseInt(qtyInput.value, 10);
+      
       if (!productId) {
         alert('Please select a product');
         return;
       }
+      if (qty < 1 || isNaN(qty)) {
+        alert('Please enter a valid quantity');
+        return;
+      }
+
       const price = Number(priceInput.value) || 0;
       const subtotal = price * qty;
-      cart.push({
-        productId,
-        name: product.ProductName,
-        price,
-        qty,
-        subtotal
-      });
+
+      // Check if product already exists in cart to merge
+      const existingItem = cart.find(item => item.productId === productId);
+      if (existingItem) {
+        existingItem.qty += qty;
+        existingItem.subtotal = existingItem.price * existingItem.qty;
+      } else {
+        cart.push({
+          productId,
+          name: product.ProductName,
+          price,
+          qty,
+          subtotal
+        });
+      }
+
       updateCartUI();
+
       // Reset inputs for next entry
       qtyInput.value = '1';
       totalInput.value = price.toFixed(2);
     });
 
-    // Finalize Sale button handler
-    document.getElementById('finalize-sale').addEventListener('click', async () => {
-      if (cart.length === 0) {
-        alert('Cart is empty');
-        return;
-      }
-      const locationId = locationSelect.value;
-      const locationName = locationSelect.options[locationSelect.selectedIndex].text;
-      const notes = document.getElementById('sell-notes').value.trim();
-      const currentUser = getCurrentUser();
+    // Handle interactive Cart actions (delegated click handling)
+    cartTableBody.addEventListener('click', (e) => {
+      const target = e.target;
+      const index = parseInt(target.getAttribute('data-index'), 10);
+      
+      if (isNaN(index)) return;
 
-      // Save each cart item as a transaction
+      if (target.classList.contains('btn-qty-dec')) {
+        // Reduce quantity
+        if (cart[index].qty > 1) {
+          cart[index].qty--;
+          cart[index].subtotal = cart[index].price * cart[index].qty;
+        } else {
+          // Remove item if qty reaches 0
+          cart.splice(index, 1);
+        }
+        updateCartUI();
+      } else if (target.classList.contains('btn-qty-inc')) {
+        // Increase quantity
+        cart[index].qty++;
+        cart[index].subtotal = cart[index].price * cart[index].qty;
+        updateCartUI();
+      } else if (target.classList.contains('btn-remove')) {
+        // Remove item entirely
+        cart.splice(index, 1);
+        updateCartUI();
+      }
+    });
+
+    // Helper to save cart items as transactions
+    async function saveCartTransactions() {
+      const locationId = locationSelect.value;
+      const notes = notesInput.value.trim();
+      const currentUser = getCurrentUser() || { UserID: '302' }; // fallback user
+
       for (const item of cart) {
         await saveTransaction({
           ProductID: item.productId,
@@ -161,61 +427,117 @@
           TransactionDate: new Date().toISOString()
         });
       }
+    }
 
-      alert('Sale recorded successfully. Stock has been updated.');
-    // Print receipt after successful sale
-    printReceipt();
-      // Reset cart and UI
-      cart.length = 0;
-      updateCartUI();
-      window.location.href = 'dashboard.html';
+    // Finalize Sale button handler
+    document.getElementById('finalize-sale').addEventListener('click', async () => {
+      if (cart.length === 0) {
+        alert('Cart is empty');
+        return;
+      }
+
+      const confirmFinalize = confirm('Are you sure you want to finalize this sale? This will deduct inventory.');
+      if (!confirmFinalize) return;
+
+      try {
+        await saveCartTransactions();
+        alert('Sale recorded successfully. Stock has been updated.');
+        
+        // Print receipt
+        printReceipt();
+
+        // Clear cart
+        cart.length = 0;
+        updateCartUI();
+
+        // Refresh parent dashboard and return
+        if (window.parent && window.parent !== window) {
+          window.parent.location.reload();
+        } else {
+          window.location.href = 'dashboard.html';
+        }
+      } catch (error) {
+        console.error('Finalize sale error:', error);
+        alert('Failed to record sale. Please check connection and try again.');
+      }
     });
 
-// Print receipt function
-function printReceipt() {
-  if (cart.length === 0) {
-    alert('Cart is empty');
-    return;
-  }
-  const locationName = locationSelect.options[locationSelect.selectedIndex].text;
-  const rows = cart.map(item => `<tr><td>${item.name}</td><td>${item.qty}</td><td>₦${item.price.toFixed(2)}</td><td>₦${item.subtotal.toFixed(2)}</td></tr>`).join('');
-  const total = cart.reduce((s, i) => s + i.subtotal, 0);
-  const printWindow = window.open('', '', 'height=600,width=800');
-  printWindow.document.write(`
-    <html>
-    <head>
-      <title>Receipt</title>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-      <style>
-        body { font-family: 'Inter', sans-serif; margin: 20px; color: #333; background: #f9f9f9; }
-        h2 { text-align: center; color: #2c3e50; }
-        p { margin: 5px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 8px; text-align: left; }
-        th { background: #2c3e50; color: white; }
-        tr:nth-child(even) { background: #ecf0f1; }
-        tfoot td { font-weight: bold; }
-      </style>
-    </head>
-    <body>
-      <h2>Receipt</h2>
-      <p>Location: ${locationName}</p>
-      <p>Date: ${new Date().toLocaleDateString()}</p>
-      <table>
-        <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot><tr><td colspan="3"><strong>Total</strong></td><td>₦${total.toFixed(2)}</td></tr></tfoot>
-      </table>
-    </body>
-    </html>
-  `);
-  printWindow.document.close();
-  printWindow.print();
-}
+    // Print receipt function
+    function printReceipt() {
+      if (cart.length === 0) {
+        alert('Cart is empty');
+        return;
+      }
+      
+      const locationName = locationSelect.options[locationSelect.selectedIndex].text;
+      const rows = cart.map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${item.qty}</td>
+          <td>₦${item.price.toFixed(2)}</td>
+          <td>₦${item.subtotal.toFixed(2)}</td>
+        </tr>
+      `).join('');
+      
+      const total = cart.reduce((s, i) => s + i.subtotal, 0);
+      const printWindow = window.open('', '_blank', 'height=600,width=800');
+      
+      printWindow.document.write(`
+        <html>
+        <head>
+          <title>Receipt</title>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Outfit', sans-serif; margin: 20px; color: #333; background: #fff; }
+            h2 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
+            p { margin: 5px 0; font-size: 0.9rem; }
+            .receipt-header { border-bottom: 2px dashed #ccc; padding-bottom: 10px; margin-bottom: 15px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { padding: 8px; text-align: left; font-size: 0.9rem; }
+            th { border-bottom: 1px solid #ddd; }
+            tr:nth-child(even) { background: #fdfdfd; }
+            .total-row { border-top: 2px dashed #ccc; font-weight: bold; font-size: 1.1rem; }
+            .footer-msg { text-align: center; margin-top: 30px; font-size: 0.8rem; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <h2>StockSentinel</h2>
+          <p style="text-align: center; font-size: 0.8rem; color: #777;">Sales Receipt</p>
+          <div class="receipt-header">
+            <p><strong>Location:</strong> ${locationName}</p>
+            <p><strong>Date:</strong> ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+              <tr class="total-row">
+                <td colspan="3">Total</td>
+                <td>₦${total.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="footer-msg">
+            <p>Thank you for your purchase!</p>
+            <p>Powered by StockSentinel</p>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
 
-// Print receipt button handler
-document.getElementById('print-receipt-btn').addEventListener('click', printReceipt);
-</script>
+    // Register receipt print click handler directly under cart table
+    document.getElementById('print-receipt-btn').addEventListener('click', printReceipt);
+  </script>
 </body>
 
 </html>
