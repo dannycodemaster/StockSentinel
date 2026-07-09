@@ -295,6 +295,7 @@ function printReceiptFromRecord(sale) {
       <hr class="divider">
       <p class="meta"><strong>Location:</strong> ${sale.locationName}</p>
       <p class="meta"><strong>Date:</strong> ${sale.dateTime}</p>
+      <p class="meta"><strong>Seller:</strong> ${sale.sellerName || '—'}</p>
       ${sale.notes ? `<p class="meta"><strong>Notes:</strong> ${sale.notes}</p>` : ''}
       <table>
         <thead>

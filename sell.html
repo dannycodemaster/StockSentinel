@@ -509,6 +509,7 @@
           <hr class="divider">
           <p class="meta"><strong>Location:</strong> ${sale.locationName}</p>
           <p class="meta"><strong>Date:</strong> ${sale.dateTime}</p>
+          <p class="meta"><strong>Seller:</strong> ${sale.sellerName || '—'}</p>
           ${sale.notes ? `<p class="meta"><strong>Notes:</strong> ${sale.notes}</p>` : ''}
           <table>
             <thead>
@@ -543,13 +544,15 @@
       if (cart.length === 0) { alert('Cart is empty'); return; }
       const locationName = locationSelect.options[locationSelect.selectedIndex]?.text || '—';
       const grandTotal   = cart.reduce((s, i) => s + i.subtotal, 0);
+      const currentUser  = getCurrentUser() || { UserID: '302', FullName: 'John Doe' };
       printReceiptFromRecord({
         receiptId:    'PREVIEW',
         dateTime:     new Date().toLocaleString(),
         locationName,
         notes:        notesInput.value.trim(),
         items:        cart.map(i => ({ ...i })),
-        grandTotal
+        grandTotal,
+        sellerName:   currentUser.FullName || currentUser.UserID
       });
     }
 
@@ -621,7 +624,7 @@
       try {
         await saveCartTransactions();
 
-        // Build sale record for history
+        const currentUser = getCurrentUser() || { UserID: '302', FullName: 'John Doe' };
         const locationName = locationSelect.options[locationSelect.selectedIndex]?.text || '—';
         const grandTotal   = cart.reduce((s, i) => s + i.subtotal, 0);
         const receiptId    = 'REC-' + Date.now();
@@ -631,7 +634,8 @@
           locationName,
           notes:       notesInput.value.trim(),
           items:       cart.map(i => ({ ...i })),
-          grandTotal
+          grandTotal,
+          sellerName:  currentUser.FullName || currentUser.UserID
         };
 
         // Save to history
