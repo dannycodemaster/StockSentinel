@@ -69,6 +69,12 @@
           </svg>
           <span>Sale</span>
         </a>
+        <a class="nav-item" id="nav-sales-history" data-view="sales-history-view" role="button" tabindex="0">
+          <svg viewBox="0 0 24 24">
+            <path d="M13 3a9 9 0 1 0 9 9h-2a7 7 0 1 1-7-7V3zm7 0v6h-6l2.5-2.5A6.97 6.97 0 0 0 13 3h7z" />
+          </svg>
+          <span>Sales History</span>
+        </a>
 
 
       </nav>
@@ -445,6 +451,33 @@
       <!-- ==================== SELLING VIEW ==================== -->
       <section id="selling-view" class="app-view">
         <iframe src="sell.html" style="width:100%;height:80vh;border:none;"></iframe>
+      </section>
+
+      <!-- ==================== SALES HISTORY VIEW ==================== -->
+      <section id="sales-history-view" class="app-view">
+        <div class="controls-bar">
+          <p class="page-subtitle">All completed sales receipts. Click <strong>Reprint</strong> to reopen any receipt.</p>
+          <button class="btn btn-danger btn-sm" id="clear-sales-history-btn">🗑️ Clear History</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="sales-history-table">
+            <thead>
+              <tr>
+                <th>Receipt #</th>
+                <th>Date &amp; Time</th>
+                <th>Location</th>
+                <th>Items</th>
+                <th class="text-right">Grand Total</th>
+                <th>Notes</th>
+                <th class="text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sales-history-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
       </section>
       <section id="notifications-view" class="app-view">
         <div class="controls-bar">

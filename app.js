@@ -59,6 +59,12 @@ const VIEWS = [
     title: 'Sell',
     subtitle: 'Record sales transactions and reduce stock',
     onEnter: () => {}
+  },
+  {
+    id: 'sales-history-view',
+    title: 'Sales History',
+    subtitle: 'All finalized sale receipts — reprint any past transaction',
+    onEnter: () => renderSalesHistoryView()
   }
 ];
 
@@ -239,6 +245,138 @@ function initResetButton() {
   });
 }
 
+// ─── SALES HISTORY VIEW ───────────────────────────────────────────────────────
+
+const SALES_HISTORY_KEY = 'stocksentinel_sales_history';
+
+function getSalesHistory() {
+  try { return JSON.parse(localStorage.getItem(SALES_HISTORY_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function printReceiptFromRecord(sale) {
+  const rows = sale.items.map(item => `
+    <tr>
+      <td>${item.name}</td>
+      <td style="text-align:center;">${item.qty}</td>
+      <td>₦${Number(item.price).toFixed(2)}</td>
+      <td>₦${Number(item.subtotal).toFixed(2)}</td>
+    </tr>`).join('');
+
+  const printWindow = window.open('', '_blank', 'height=640,width=820');
+  printWindow.document.write(`
+    <html>
+    <head>
+      <title>Receipt — ${sale.receiptId}</title>
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Outfit', sans-serif; padding: 28px; color: #222; background: #fff; }
+        .header { text-align: center; margin-bottom: 18px; }
+        .header h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; }
+        .header .subtitle { font-size: 0.85rem; color: #777; margin-top: 2px; }
+        .divider { border: none; border-top: 2px dashed #ccc; margin: 14px 0; }
+        .meta { font-size: 0.88rem; margin-bottom: 4px; color: #444; }
+        .receipt-id { font-size: 0.75rem; color: #aaa; text-align: center; margin-bottom: 6px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        th { background: #f0f4f8; padding: 9px 10px; text-align: left; font-size: 0.85rem; border-bottom: 1px solid #ddd; }
+        td { padding: 8px 10px; font-size: 0.88rem; border-bottom: 1px solid #f0f0f0; }
+        .total-row td { font-weight: 700; font-size: 1rem; padding-top: 12px; border-top: 2px dashed #ccc; }
+        .footer { text-align: center; margin-top: 28px; font-size: 0.8rem; color: #888; }
+        @media print { body { padding: 12px; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>StockSentinel</h1>
+        <div class="subtitle">Official Sales Receipt</div>
+      </div>
+      <div class="receipt-id">Receipt #${sale.receiptId}</div>
+      <hr class="divider">
+      <p class="meta"><strong>Location:</strong> ${sale.locationName}</p>
+      <p class="meta"><strong>Date:</strong> ${sale.dateTime}</p>
+      ${sale.notes ? `<p class="meta"><strong>Notes:</strong> ${sale.notes}</p>` : ''}
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th><th style="text-align:center;">Qty</th><th>Price</th><th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td colspan="3">Grand Total</td>
+            <td>₦${Number(sale.grandTotal).toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="footer">
+        <p>Thank you for your purchase! 🙏</p>
+        <p>Powered by StockSentinel</p>
+      </div>
+      <script>window.onload = () => window.print();<\/script>
+    </body>
+    </html>`);
+  printWindow.document.close();
+}
+
+function renderSalesHistoryView() {
+  const tbody = document.getElementById('sales-history-table-body');
+  if (!tbody) return;
+
+  const history = getSalesHistory();
+
+  if (history.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="text-center" style="color: var(--text-secondary); padding: 2.5rem;">
+          No sales recorded yet. Finalize a sale on the <strong>Sale</strong> page to see history here.
+        </td>
+      </tr>`;
+    return;
+  }
+
+  tbody.innerHTML = history.map((sale, idx) => `
+    <tr>
+      <td>
+        <code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 0.78rem;">
+          ${sale.receiptId}
+        </code>
+      </td>
+      <td style="font-size: 0.85rem; color: var(--text-secondary);">${sale.dateTime}</td>
+      <td style="font-size: 0.85rem;">${sale.locationName}</td>
+      <td>
+        <span class="badge badge-success">${sale.items.length} item${sale.items.length !== 1 ? 's' : ''}</span>
+      </td>
+      <td class="text-right" style="font-weight: 700; color: var(--color-success);">
+        ₦${Number(sale.grandTotal).toFixed(2)}
+      </td>
+      <td style="font-size: 0.82rem; color: var(--text-secondary);">${sale.notes || '—'}</td>
+      <td class="text-center">
+        <button
+          class="btn btn-secondary btn-sm"
+          id="reprint-btn-${idx}"
+          onclick="window._reprintSale(${idx})"
+        >🖨️ Reprint</button>
+      </td>
+    </tr>`).join('');
+
+  // Expose reprint handler globally for inline onclick
+  window._reprintSale = (idx) => {
+    const h = getSalesHistory();
+    if (h[idx]) printReceiptFromRecord(h[idx]);
+  };
+}
+
+function initClearSalesHistoryButton() {
+  document.getElementById('clear-sales-history-btn')?.addEventListener('click', () => {
+    if (confirm('Clear all sales history? This cannot be undone.')) {
+      localStorage.removeItem(SALES_HISTORY_KEY);
+      renderSalesHistoryView();
+    }
+  });
+}
+
 function initLogoutButton() {
   const handler = () => {
     localStorage.removeItem('stocksentinel_current_user');
@@ -284,6 +422,9 @@ async function boot() {
 
   // 8. Initialize the manual database sync handler
   initSyncButton();
+
+  // 9. Initialize clear sales history button
+  initClearSalesHistoryButton();
 
   // 9. Display current user profile in the sidebar
   updateUserDisplay(user);

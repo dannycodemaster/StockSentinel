@@ -300,33 +300,7 @@
       </div>
     </div>
 
-    <!-- SALES HISTORY SECTION -->
-    <div class="sales-history-section">
-      <h2>📜 Sales History</h2>
-      <div class="history-table-wrapper">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Receipt #</th>
-              <th>Date &amp; Time</th>
-              <th>Location</th>
-              <th>Items</th>
-              <th class="text-right">Total</th>
-              <th class="text-center">Notes</th>
-              <th class="text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="history-table-body">
-            <tr>
-              <td colspan="7" class="text-center" style="color: var(--text-secondary); padding: 2rem;">
-                No sales recorded yet.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+
 
   <script type="module">
     import { getProducts, getLocations, saveTransaction, getCurrentUser } from './db.js';
@@ -344,7 +318,6 @@
     const notesInput      = document.getElementById('sell-notes');
     const cartTableBody   = document.getElementById('cart-table-body');
     const grandTotalVal   = document.getElementById('grand-total-val');
-    const historyTableBody= document.getElementById('history-table-body');
 
     // ─── POPULATE DROPDOWNS ───────────────────────────────────────────────────
     const products = getProducts();
@@ -490,40 +463,6 @@
       localStorage.setItem(SALES_HISTORY_KEY, JSON.stringify(history));
     }
 
-    function renderHistoryTable() {
-      const history = getSalesHistory();
-      if (history.length === 0) {
-        historyTableBody.innerHTML = `
-          <tr>
-            <td colspan="7" class="text-center" style="color: var(--text-secondary); padding: 2rem;">
-              No sales recorded yet.
-            </td>
-          </tr>`;
-        return;
-      }
-
-      historyTableBody.innerHTML = history.map((sale, idx) => `
-        <tr>
-          <td>
-            <code style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 0.78rem;">
-              ${sale.receiptId}
-            </code>
-          </td>
-          <td style="font-size: 0.85rem; color: var(--text-secondary);">${sale.dateTime}</td>
-          <td style="font-size: 0.85rem;">${sale.locationName}</td>
-          <td style="font-size: 0.85rem;">${sale.items.length} item(s)</td>
-          <td class="text-right" style="font-weight: 700; color: var(--color-success);">
-            ₦${sale.grandTotal.toFixed(2)}
-          </td>
-          <td class="text-center" style="font-size: 0.82rem; color: var(--text-secondary);">
-            ${sale.notes || '—'}
-          </td>
-          <td class="text-center">
-            <button type="button" class="btn-reprint" data-history-index="${idx}">🖨️ Reprint</button>
-          </td>
-        </tr>
-      `).join('');
-    }
 
     // ─── PRINT RECEIPT (accepts a sale record object) ─────────────────────────
     function printReceiptFromRecord(sale) {
@@ -616,14 +555,6 @@
 
     document.getElementById('print-receipt-btn').addEventListener('click', printCurrentCart);
 
-    // ─── REPRINT FROM HISTORY ─────────────────────────────────────────────────
-    historyTableBody.addEventListener('click', (e) => {
-      if (e.target.classList.contains('btn-reprint')) {
-        const idx     = parseInt(e.target.getAttribute('data-history-index'), 10);
-        const history = getSalesHistory();
-        if (history[idx]) printReceiptFromRecord(history[idx]);
-      }
-    });
 
     // ─── SAVE TRANSACTIONS ────────────────────────────────────────────────────
     async function saveCartTransactions() {
@@ -687,8 +618,6 @@
         updateCartUI();
         notesInput.value = '';
 
-        // Refresh history table
-        renderHistoryTable();
 
       } catch (error) {
         console.error('Finalize sale error:', error);
@@ -699,8 +628,6 @@
       }
     });
 
-    // ─── INIT HISTORY TABLE ───────────────────────────────────────────────────
-    renderHistoryTable();
   </script>
 </body>
 
