@@ -353,18 +353,52 @@ function renderSalesHistoryView() {
       </td>
       <td style="font-size: 0.82rem; color: var(--text-secondary);">${sale.notes || '—'}</td>
       <td class="text-center">
-        <button
-          class="btn btn-secondary btn-sm"
-          id="reprint-btn-${idx}"
-          onclick="window._reprintSale(${idx})"
-        >🖨️ Reprint</button>
+        <div style="display: inline-flex; gap: 0.5rem; justify-content: center;">
+          <button
+            class="btn btn-secondary btn-sm"
+            id="reprint-btn-${idx}"
+            onclick="window._reprintSale(${idx})"
+            title="Reprint Receipt"
+          >🖨️ Reprint</button>
+          <button
+            class="btn btn-primary btn-sm"
+            id="edit-cart-btn-${idx}"
+            onclick="window._loadSaleToCart(${idx})"
+            title="Load items back to Cart to edit"
+          >✏️ Edit Cart</button>
+        </div>
       </td>
     </tr>`).join('');
 
-  // Expose reprint handler globally for inline onclick
+  // Expose handlers globally for inline onclick
   window._reprintSale = (idx) => {
     const h = getSalesHistory();
     if (h[idx]) printReceiptFromRecord(h[idx]);
+  };
+
+  window._loadSaleToCart = (idx) => {
+    const h = getSalesHistory();
+    const sale = h[idx];
+    if (sale) {
+      // 1. Switch sidebar active view to selling-view
+      navigateTo('selling-view');
+      
+      // 2. Access the iframe's content window and trigger loadSaleToCart
+      const iframe = document.querySelector('#selling-view iframe');
+      if (iframe && iframe.contentWindow) {
+        if (typeof iframe.contentWindow.loadSaleToCart === 'function') {
+          iframe.contentWindow.loadSaleToCart(sale);
+        } else {
+          // If the iframe script hasn't fully loaded, retry briefly after load
+          iframe.addEventListener('load', function handler() {
+            if (typeof iframe.contentWindow.loadSaleToCart === 'function') {
+              iframe.contentWindow.loadSaleToCart(sale);
+            }
+            iframe.removeEventListener('load', handler);
+          });
+        }
+      }
+    }
   };
 }
 

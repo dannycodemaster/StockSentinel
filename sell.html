@@ -555,6 +555,37 @@
 
     document.getElementById('print-receipt-btn').addEventListener('click', printCurrentCart);
 
+    // Expose method to load a past sale back into the cart for editing
+    window.loadSaleToCart = function(sale) {
+      // Clear existing cart
+      cart.length = 0;
+      
+      // Load items
+      sale.items.forEach(item => {
+        cart.push({
+          productId: item.productId,
+          name: item.name,
+          price: Number(item.price),
+          qty: Number(item.qty),
+          subtotal: Number(item.subtotal)
+        });
+      });
+
+      // Load location if matched
+      if (sale.locationName) {
+        const matchedOption = Array.from(locationSelect.options).find(opt => opt.text === sale.locationName);
+        if (matchedOption) {
+          locationSelect.value = matchedOption.value;
+        }
+      }
+
+      // Load notes
+      notesInput.value = sale.notes || '';
+
+      // Refresh cart UI
+      updateCartUI();
+    };
+
 
     // ─── SAVE TRANSACTIONS ────────────────────────────────────────────────────
     async function saveCartTransactions() {
