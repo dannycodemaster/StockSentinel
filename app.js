@@ -345,15 +345,6 @@ function renderSalesHistoryView() {
   };
 }
 
-function initClearSalesHistoryButton() {
-  document.getElementById('clear-sales-history-btn')?.addEventListener('click', () => {
-    if (confirm('Clear all sales history? This cannot be undone.')) {
-      localStorage.removeItem(SALES_HISTORY_KEY);
-      renderSalesHistoryView();
-    }
-  });
-}
-
 function initLogoutButton() {
   const handler = () => {
     localStorage.removeItem('stocksentinel_current_user');
@@ -617,7 +608,6 @@ async function boot() {
   initResetButton();
   initLogoutButton();
   initSyncButton();
-  initClearSalesHistoryButton();
   initReceiptEditModal();
 
   updateUserDisplay(user);
