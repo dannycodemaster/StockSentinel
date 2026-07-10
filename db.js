@@ -112,6 +112,33 @@ async function deleteRecord(table, idField, id) {
   const { error } = await client.from(table).delete().eq(idField, id);
   if (error) throw error;
 }
+export async function deleteTransactionsByReference(referenceNumber) {
+  if (!referenceNumber) return;
+  // Load all transactions from local storage
+  const all = getTransactions();
+  const remaining = all.filter(t => t.ReferenceNumber !== referenceNumber);
+  // Save updated list locally
+  saveData(KEYS.TRANSACTIONS, remaining);
+
+  // Delete from Supabase if configured
+  const client = await getSupabaseClient();
+  if (client) {
+    const { data, error } = await client
+      .from(TABLES.TRANSACTIONS)
+      .select('TransactionID')
+      .eq('ReferenceNumber', referenceNumber);
+    if (error) {
+      logCloudError('delete transactions fetch', error);
+    } else if (data && data.length) {
+      const ids = data.map(d => d.TransactionID);
+      const { error: delError } = await client
+        .from(TABLES.TRANSACTIONS)
+        .delete()
+        .in('TransactionID', ids);
+      if (delError) logCloudError('delete transactions', delError);
+    }
+  }
+}
 
 async function resetCloudToSeed() {
   const client = await getSupabaseClient();

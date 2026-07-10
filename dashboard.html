@@ -722,6 +722,89 @@
     </div>
   </div>
 
+  <!-- ==================== MODAL: RECEIPT VIEWER / EDITOR ==================== -->
+  <div class="modal-overlay" id="receipt-edit-modal" style="z-index: 1100;">
+    <div class="modal-content" style="max-width: 780px; width: 95%; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header" style="position: sticky; top: 0; background: var(--bg-secondary); z-index: 10; padding: 1rem 1.5rem; border-bottom: 1px solid var(--glass-border);">
+        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+          <h2 id="receipt-modal-title" style="font-size: 1.2rem; font-weight: 700;">🧾 Receipt</h2>
+          <span id="receipt-modal-subtitle" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
+        </div>
+        <div style="display: flex; gap: 0.6rem; align-items: center;">
+          <button class="btn btn-secondary btn-sm" id="receipt-modal-print-btn" title="Print this receipt">🖨️ Print</button>
+          <button class="modal-close" id="receipt-modal-close" aria-label="Close modal">×</button>
+        </div>
+      </div>
+
+      <div style="padding: 1.5rem;">
+        <!-- Meta info row -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="form-group" style="margin: 0;">
+            <label for="receipt-modal-location">Location</label>
+            <select class="form-control" id="receipt-modal-location"></select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label for="receipt-modal-notes">Notes</label>
+            <input type="text" class="form-control" id="receipt-modal-notes" placeholder="Optional notes...">
+          </div>
+        </div>
+
+        <!-- Cart / Items Table -->
+        <div style="background: var(--bg-tertiary); border-radius: var(--border-radius-sm); border: 1px solid var(--glass-border); overflow: hidden; margin-bottom: 1.5rem;">
+          <div style="padding: 0.75rem 1rem; border-bottom: 1px solid var(--glass-border); font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between;">
+            <span>🛍️ Line Items</span>
+            <button class="btn btn-primary btn-sm" id="receipt-modal-add-item-btn">+ Add Item</button>
+          </div>
+          <div style="max-height: 260px; overflow-y: auto;">
+            <table class="data-table" style="margin: 0;">
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th class="text-center" style="width: 140px;">Qty</th>
+                  <th class="text-right">Unit Price</th>
+                  <th class="text-right">Subtotal</th>
+                  <th class="text-center" style="width: 64px;">Del</th>
+                </tr>
+              </thead>
+              <tbody id="receipt-modal-items-body"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Add Item Row (hidden until + button clicked) -->
+        <div id="receipt-modal-add-row" style="display: none; background: var(--glass-bg); border: 1px dashed var(--glass-border); border-radius: var(--border-radius-sm); padding: 1rem; margin-bottom: 1.5rem; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+          <div class="form-group" style="flex: 2; min-width: 160px; margin: 0;">
+            <label for="receipt-modal-new-product">Product</label>
+            <select class="form-control" id="receipt-modal-new-product"></select>
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 80px; margin: 0;">
+            <label for="receipt-modal-new-qty">Qty</label>
+            <input type="number" class="form-control" id="receipt-modal-new-qty" min="1" value="1">
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 100px; margin: 0;">
+            <label>Unit Price</label>
+            <input type="text" class="form-control" id="receipt-modal-new-price" readonly>
+          </div>
+          <div style="display: flex; gap: 0.5rem; padding-bottom: 0.05rem;">
+            <button class="btn btn-success btn-sm" id="receipt-modal-confirm-add-btn">Add</button>
+            <button class="btn btn-secondary btn-sm" id="receipt-modal-cancel-add-btn">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Grand Total -->
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; font-weight: 700; padding: 0.75rem 0; border-top: 2px dashed var(--glass-border); margin-bottom: 1.5rem;">
+          <span>Grand Total:</span>
+          <span id="receipt-modal-grand-total" style="color: var(--color-success);">₦0.00</span>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
+          <button class="btn btn-secondary" id="receipt-modal-cancel-btn">Cancel</button>
+          <button class="btn btn-success" id="receipt-modal-save-btn">✅ Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Load application javascript -->
   <script type="module" src="app.js"></script>
 </body>
