@@ -1,6 +1,6 @@
 // app.js - StockSentinel Application Entry Point & Navigation Router
 
-import { initDB, resetDB, getCurrentUser, getUsers, setCurrentUser, getDBStatus, getProducts, getLocations, saveTransaction, deleteTransactionsByReference } from './db.js';
+import { initDB, resetDB, getCurrentUser, getUsers, setCurrentUser, getDBStatus, getProducts, getLocations, saveTransaction, deleteTransactionsByReference, getProductInventory } from './db.js';
 import {
   initUIEvents,
   updateUserDisplay,

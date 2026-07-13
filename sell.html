@@ -311,7 +311,7 @@
 
 
     <script type="module">
-      import { getProducts, getLocations, saveTransaction, getCurrentUser, deleteTransactionsByReference } from './db.js';
+      import { getProducts, getLocations, saveTransaction, getCurrentUser, deleteTransactionsByReference, getProductInventory } from './db.js';
 
       // ─── CONSTANTS ───────────────────────────────────────────────────────────
       const SALES_HISTORY_KEY = 'stocksentinel_sales_history';
@@ -417,11 +417,23 @@
         if (!productId || !product) { alert('Please select a product'); return; }
         if (qty < 1 || isNaN(qty)) { alert('Please enter a valid quantity'); return; }
 
+        const stock = getProductInventory(productId);
+        if (stock <= 0) {
+          alert('Out of stock!');
+          return;
+        }
+
+        const existing = cart.find(item => item.productId === productId);
+        const currentInCart = existing ? existing.qty : 0;
+        if (currentInCart + qty > stock) {
+          alert(`Not enough stock! Available: ${stock}`);
+          return;
+        }
+
         const price = Number(priceInput.value) || 0;
         const subtotal = price * qty;
 
         // Merge duplicates
-        const existing = cart.find(item => item.productId === productId);
         if (existing) {
           existing.qty += qty;
           existing.subtotal = existing.price * existing.qty;
@@ -449,6 +461,12 @@
           }
           updateCartUI();
         } else if (target.classList.contains('btn-qty-inc')) {
+          const item = cart[index];
+          const stock = getProductInventory(item.productId);
+          if (item.qty + 1 > stock) {
+            alert(`Not enough stock! Available: ${stock}`);
+            return;
+          }
           cart[index].qty++;
           cart[index].subtotal = cart[index].price * cart[index].qty;
           updateCartUI();
