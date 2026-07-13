@@ -1,6 +1,9 @@
 -- StockSentinel Supabase schema
 -- Run this in the Supabase SQL editor before enabling supabase-config.js.
 
+-- Configures the database timezone to match local time (e.g. 'Africa/Lagos' for WAT / +01:00)
+ALTER DATABASE postgres SET timezone TO 'Africa/Lagos';
+
 create table if not exists public.suppliers (
   "SupplierID" text primary key,
   "SupplierName" text not null,
